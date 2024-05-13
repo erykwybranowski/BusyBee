@@ -26,11 +26,13 @@ public class MainMenuGameSwitcher extends JFrame {
 
         // Set the initial panel to display
         cardLayout.show(cards, "menu");
+        pack();
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration());
         int taskBarHeight = insets.bottom;
         setSize(screenSize.width, screenSize.height - taskBarHeight); // Set the frame size to screen size minus taskbar height
+//        setSize(400,400); // Set the frame size to screen size minus taskbar height
         setLocationRelativeTo(null); // Center the frame on the screen
     }
 
