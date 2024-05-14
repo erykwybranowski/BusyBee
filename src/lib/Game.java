@@ -1,27 +1,31 @@
 package lib;
 
-import lib.animations.Grass1;
+import lib.animations.Sprite;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.SQLOutput;
+import java.util.Random;
 import javax.imageio.ImageIO;
 
 public class Game extends JPanel {
-    private BufferedImage sheet;
+    public BufferedImage sheet;
+    private Sprite[] grass;
+    private Random random;
+    private Sprite bee;
 
     public Game(CardLayout cardLayout, JPanel cards) {
         super(new BorderLayout());
         setPreferredSize(new Dimension(400, 400)); // Set preferred size to 400x400
         setBackground(new Color(81, 121, 71));
         setLayout(new FlowLayout(FlowLayout.CENTER));
-
 
         // Load the image
         try {
@@ -30,6 +34,38 @@ public class Game extends JPanel {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        Sprite[] sprites = new Sprite[100];
+        random = new Random();
+        for(int i=0; i<100; i++){
+            sprites[i] = new Sprite(this,random.nextInt(10)+1, 20+random.nextInt(36)*10,30+random.nextInt(21)*16, 500);
+        }
+        grass = sprites;
+
+        bee = new Sprite(this,11,((int)getPreferredSize().getWidth()-17)/2,((int)getPreferredSize().getHeight()-15)/2, 100);
+        setFocusable(true);
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                // Handle arrow key events
+                int keyCode = e.getKeyCode();
+                System.out.println(keyCode);
+                switch (keyCode) {
+                    case KeyEvent.VK_LEFT:
+                        bee.moveLeft();
+                        break;
+                    case KeyEvent.VK_RIGHT:
+                        bee.moveRight();
+                        break;
+                    case KeyEvent.VK_UP:
+                        bee.moveUp();
+                        break;
+                    case KeyEvent.VK_DOWN:
+                        bee.moveDown();
+                        break;
+                }
+                repaint(); // Repaint the panel after moving the grass object
+            }
+        });
 
         JButton backButton = new JButton("Back to Main Menu");
         backButton.addActionListener(new ActionListener() {
@@ -59,6 +95,11 @@ public class Game extends JPanel {
         g2d.fillRect(0, 0, (int)getPreferredSize().getWidth(), (int)getPreferredSize().getHeight());
 
         // Draw the scene
+        // Render the animated object (grass1) onto the panel
+        for(int i=0; i<grass.length; i++){
+            grass[i].render(g2d);
+        }
+
         BufferedImage beehive = sheet.getSubimage(0, 41, 52, 58);
         g2d.drawImage(beehive, ((int)getPreferredSize().getWidth() - beehive.getWidth()) / 2, ((int)getPreferredSize().getHeight() - beehive.getHeight()) / 2, this);
 
@@ -77,9 +118,7 @@ public class Game extends JPanel {
             }
         }
 
-        Grass1 grass1 = new Grass1();
-        grass1.render(g2d, 50, 50);
-        grass1.startAnimation();
+        bee.render(g2d);
         g2d.dispose();
     }
 }
