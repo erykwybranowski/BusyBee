@@ -236,11 +236,13 @@ public class Sprite {
     }
 
     public void collectPollen(Game gamePanel) {
-        if (this.currentFrameIndex == 0) {
-            this.currentFrameIndex = 1;
-            gamePanel.repaint();
-            timer.restart();
-        }
+        this.currentFrameIndex = 1;
+        gamePanel.repaint();
+        timer.restart();
+    }
+
+    public int getCurrentFrameIndex() {
+        return currentFrameIndex;
     }
 
     public Rectangle getBounds() {

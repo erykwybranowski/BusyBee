@@ -20,13 +20,21 @@ public class Game extends JPanel implements Runnable {
     private Random random;
     private Sprite bee;
     private Sprite[] flowers;
-    private final double SPEED = 2;
+    private final double INITIAL_SPEED = 2;
+    private double currentSpeed = INITIAL_SPEED;
 
     private boolean running = false;
     private Set<String> pressedKeys;
 
     private final int TARGET_FPS = 60;  // Target frames per second
     private final long OPTIMAL_TIME = 1000000000 / TARGET_FPS;  // Time per frame in nanoseconds
+
+    private int pollenCount = 0;  // Number of times pollen is collected
+    private int points = 0;  // Game points
+
+    // Define the number of pollen collections allowed and how much speed to reduce
+    private static final int MAX_POLLEN = 3;
+    private static final double SPEED_REDUCTION = 0.5;
 
     public Game(CardLayout cardLayout, JPanel cards) {
         super(new BorderLayout());
@@ -177,28 +185,28 @@ public class Game extends JPanel implements Runnable {
         // Move Left
         if (pressedKeys.contains("LEFT")) {
             if (beeBounds.x > rectangle.x) {  // Allow movement left if bee is not outside the left boundary
-                bee.moveLeft(SPEED);
+                bee.moveLeft(currentSpeed);
             }
         }
 
         // Move Right
         if (pressedKeys.contains("RIGHT")) {
             if (beeBounds.x + beeBounds.width < rectangle.x + rectangle.width) {  // Allow right movement if not outside the right boundary
-                bee.moveRight(SPEED);
+                bee.moveRight(currentSpeed);
             }
         }
 
         // Move Up
         if (pressedKeys.contains("UP")) {
             if (beeBounds.y > rectangle.y) {  // Allow movement up if bee is not outside the top boundary
-                bee.moveUp(SPEED);
+                bee.moveUp(currentSpeed);
             }
         }
 
         // Move Down
         if (pressedKeys.contains("DOWN")) {
             if (beeBounds.y + beeBounds.height < rectangle.y + rectangle.height) {  // Allow down movement if not outside the bottom boundary
-                bee.moveDown(SPEED);
+                bee.moveDown(currentSpeed);
             }
         }
 
@@ -206,12 +214,26 @@ public class Game extends JPanel implements Runnable {
         checkCollisions();
     }
 
-
     private void checkCollisions() {
+        // Handle pollen collection from flowers
         for (Sprite flower : flowers) {
-            if (bee.getBounds().intersects(flower.getBounds())) {
-                flower.collectPollen(this);  // Trigger collectPollen if a collision occurs
+            if (bee.getBounds().intersects(flower.getBounds()) && pollenCount < MAX_POLLEN && flower.getCurrentFrameIndex() == 0) {
+                pollenCount++;
+                currentSpeed = Math.max(0, currentSpeed - SPEED_REDUCTION); // Reduce speed but ensure it's not negative
+                flower.collectPollen(this);
             }
+        }
+
+        // Handle interaction with beehive
+        BufferedImage beehiveImage = sheet.getSubimage(0, 41, 52, 58);
+        Rectangle beehiveBounds = new Rectangle(((int) getPreferredSize().getWidth() - beehiveImage.getWidth()) / 2,
+                ((int) getPreferredSize().getHeight() - beehiveImage.getHeight()) / 2,
+                beehiveImage.getWidth(), beehiveImage.getHeight());
+
+        if (bee.getBounds().intersects(beehiveBounds)) {
+            points += pollenCount;  // Add points based on how much pollen was collected
+            pollenCount = 0;        // Reset pollen count
+            currentSpeed = INITIAL_SPEED;  // Reset speed
         }
     }
 
@@ -257,6 +279,18 @@ public class Game extends JPanel implements Runnable {
         }
 
         bee.render(g2d);
+
+        // Draw pollen icons
+        BufferedImage pollenIcon = sheet.getSubimage(63,16,17,17);
+        for (int i = 0; i < pollenCount; i++) {
+            g2d.drawImage(pollenIcon, (int) getPreferredSize().getWidth() + 30 * i, 20, this);
+        }
+
+        // Draw points over the beehive
+        g2d.setFont(new Font("Arial", Font.BOLD, 14));
+        g2d.setColor(Color.WHITE);
+        g2d.drawString("Points: " + points, (int) getPreferredSize().getWidth() / 2 - 20, (int) getPreferredSize().getHeight() / 2 - 60);
+
         g2d.dispose();
     }
 
