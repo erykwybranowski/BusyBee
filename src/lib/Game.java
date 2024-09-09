@@ -43,7 +43,7 @@ public class Game extends JPanel implements Runnable {
             e.printStackTrace();
         }
 
-        int grassCount = 100;
+        int grassCount = 300;
         Sprite[] sprites = new Sprite[grassCount];
         random = new Random();
         for (int i = 0; i < grassCount; i++) {
@@ -53,12 +53,37 @@ public class Game extends JPanel implements Runnable {
 
         bee = new Sprite(this, 11, ((int) getPreferredSize().getWidth() - 17) / 2, ((int) getPreferredSize().getHeight() - 15) / 2, 150);
 
-        Sprite[] tempFlowers = new Sprite[10];
-        int flowerCount = 10;
+        int flowerCount = 12;
+        Sprite[] tempFlowers = new Sprite[flowerCount];
+        Rectangle rectangle = new Rectangle(((int) getPreferredSize().getWidth() - 52) / 2, ((int) getPreferredSize().getHeight() - 58) / 2, 52, 58);
+
         for (int i = 0; i < flowerCount; i++) {
-            tempFlowers[i] = new Sprite(this, random.nextInt(5) + 12, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
+            boolean valid = false;
+            do {
+                Sprite newFlower = new Sprite(this, random.nextInt(5) + 12, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
+                Rectangle newFlowerBounds = newFlower.getBounds();
+
+                // Check if the new flower intersects with the rectangle
+                boolean intersectsRectangle = newFlowerBounds.intersects(rectangle);
+
+                // Check if the new flower intersects with any of the existing flowers
+                boolean intersectsOtherFlowers = false;
+                for (int j = 0; j < i; j++) {
+                    if (newFlowerBounds.intersects(tempFlowers[j].getBounds())) {
+                        intersectsOtherFlowers = true;
+                        break;
+                    }
+                }
+
+                if (!intersectsRectangle && !intersectsOtherFlowers) {
+                    valid = true;
+                    tempFlowers[i] = newFlower;
+                }
+            } while (!valid);
         }
+
         flowers = tempFlowers;
+
 
         setupKeyBindings();
 
@@ -146,17 +171,47 @@ public class Game extends JPanel implements Runnable {
     }
 
     private void updateGame() {
+        Rectangle rectangle = new Rectangle(20, 20, 360, 350);
+        Rectangle beeBounds = bee.getBounds();
+
+        // Move Left
         if (pressedKeys.contains("LEFT")) {
-            bee.moveLeft(SPEED);
+            if (beeBounds.x > rectangle.x) {  // Allow movement left if bee is not outside the left boundary
+                bee.moveLeft(SPEED);
+            }
         }
+
+        // Move Right
         if (pressedKeys.contains("RIGHT")) {
-            bee.moveRight(SPEED);
+            if (beeBounds.x + beeBounds.width < rectangle.x + rectangle.width) {  // Allow right movement if not outside the right boundary
+                bee.moveRight(SPEED);
+            }
         }
+
+        // Move Up
         if (pressedKeys.contains("UP")) {
-            bee.moveUp(SPEED);
+            if (beeBounds.y > rectangle.y) {  // Allow movement up if bee is not outside the top boundary
+                bee.moveUp(SPEED);
+            }
         }
+
+        // Move Down
         if (pressedKeys.contains("DOWN")) {
-            bee.moveDown(SPEED);
+            if (beeBounds.y + beeBounds.height < rectangle.y + rectangle.height) {  // Allow down movement if not outside the bottom boundary
+                bee.moveDown(SPEED);
+            }
+        }
+
+        // Check for collisions with flowers
+        checkCollisions();
+    }
+
+
+    private void checkCollisions() {
+        for (Sprite flower : flowers) {
+            if (bee.getBounds().intersects(flower.getBounds())) {
+                flower.collectPollen(this);  // Trigger collectPollen if a collision occurs
+            }
         }
     }
 

@@ -21,6 +21,7 @@ public class Sprite {
     private boolean mirrored = false;
     private int width = 0;
     private int height = 0;
+    private final int flowerTime = 20000;
 
     public Sprite(Game gamePanel, int type, int x, int y, int speed) {
         this.x = x;
@@ -118,30 +119,40 @@ public class Sprite {
                 };
                 break;
             case 12: //blue flower
+                width = 19;
+                height = 29;
                 frames = new BufferedImage[]{
                         sheet.getSubimage(111,1,19,29),
                         sheet.getSubimage(131,1,19,29)
                 };
                 break;
             case 13: //yellow flower
+                width = 19;
+                height = 29;
                 frames = new BufferedImage[]{
                         sheet.getSubimage(111,31,19,29),
                         sheet.getSubimage(131,31,19,29)
                 };
                 break;
             case 14: //red flower
+                width = 19;
+                height = 29;
                 frames = new BufferedImage[]{
                         sheet.getSubimage(111,61,19,29),
                         sheet.getSubimage(131,61,19,29)
                 };
                 break;
             case 15: //purple flower
+                width = 19;
+                height = 29;
                 frames = new BufferedImage[]{
                         sheet.getSubimage(111,91,19,29),
                         sheet.getSubimage(131,91,19,29)
                 };
                 break;
             case 16: //white flower
+                width = 19;
+                height = 29;
                 frames = new BufferedImage[]{
                         sheet.getSubimage(111,121,19,29),
                         sheet.getSubimage(131,121,19,29)
@@ -165,7 +176,7 @@ public class Sprite {
             });
             timer.start();
         } else {
-            timer = new Timer(15000, new ActionListener() {
+            timer = new Timer(flowerTime, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     if (currentFrameIndex == 1) {
@@ -224,7 +235,16 @@ public class Sprite {
         this.y += speed;
     }
 
-    public void collectPollen() {
-        this.currentFrameIndex = 1;
+    public void collectPollen(Game gamePanel) {
+        if (this.currentFrameIndex == 0) {
+            this.currentFrameIndex = 1;
+            gamePanel.repaint();
+            timer.restart();
+        }
     }
+
+    public Rectangle getBounds() {
+        return new Rectangle((int) x, (int) y, width, height);
+    }
+
 }
