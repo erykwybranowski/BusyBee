@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
@@ -15,8 +16,11 @@ public class Sprite {
     private BufferedImage[] frames;
     private int currentFrameIndex;
     private Timer timer;
-    private int x;
-    private int y;
+    private double x;
+    private double y;
+    private boolean mirrored = false;
+    private int width = 0;
+    private int height = 0;
 
     public Sprite(Game gamePanel, int type, int x, int y, int speed) {
         this.x = x;
@@ -24,67 +28,67 @@ public class Sprite {
         // Load sprite sheet and define frames
         BufferedImage sheet = gamePanel.sheet;
         switch (type) {
-            case 1:
+            case 1: //grass 1
                 frames = new BufferedImage[]{
                         sheet.getSubimage(73, 97, 10, 16),
                         sheet.getSubimage(73, 114, 10, 16),
                         sheet.getSubimage(73, 131, 10, 16)
                 };
                 break;
-            case 2:
+            case 2: //grass 2
                 frames = new BufferedImage[]{
                         sheet.getSubimage(53, 41, 7, 5),
                         sheet.getSubimage(53, 47, 7, 5)
                 };
                 break;
-            case 3:
+            case 3: //grass 3
                 frames = new BufferedImage[]{
                         sheet.getSubimage(80, 49, 8, 15),
                         sheet.getSubimage(80, 65, 8, 15),
                         sheet.getSubimage(80, 81, 8, 15),
                 };
                 break;
-            case 4:
+            case 4: //grass 4
                 frames = new BufferedImage[]{
                         sheet.getSubimage(63, 34, 8, 5),
                         sheet.getSubimage(63, 40, 8, 5),
                 };
                 break;
-            case 5:
+            case 5: //grass 5
                 frames = new BufferedImage[]{
                         sheet.getSubimage(72, 34, 7, 6),
                         sheet.getSubimage(72, 41, 7, 6),
                         sheet.getSubimage(72, 48, 7, 6),
                 };
                 break;
-            case 6:
+            case 6: //grass 6
                 frames = new BufferedImage[]{
                         sheet.getSubimage(73, 55, 5, 6),
                         sheet.getSubimage(73, 62, 5, 6),
                         sheet.getSubimage(73, 69, 5, 6),
                 };
                 break;
-            case 7:
+            case 7: //grass 7
                 frames = new BufferedImage[]{
                         sheet.getSubimage(81, 31, 11, 8),
                         sheet.getSubimage(81, 40, 11, 8),
                 };
                 break;
-            case 8:
+            case 8: //grass 8
                 frames = new BufferedImage[]{
                         sheet.getSubimage(89, 63, 9, 10),
                         sheet.getSubimage(89, 74, 9, 10),
                         sheet.getSubimage(89, 85, 9, 10),
                 };
                 break;
-            case 9:
+            case 9: //grass 9
                 frames = new BufferedImage[]{
                         sheet.getSubimage(99, 63, 7, 8),
                         sheet.getSubimage(99, 72, 7, 8),
                         sheet.getSubimage(99, 81, 7, 8),
                 };
                 break;
-            case 10:
+            case 10: //grass 10
                 frames = new BufferedImage[]{
                         sheet.getSubimage(97, 27, 6, 11),
                         sheet.getSubimage(97, 39, 6, 11),
@@ -92,6 +96,8 @@ public class Sprite {
                 };
                 break;
             case 11: //bee
+                width = 17;
+                height = 15;
                 frames = new BufferedImage[]{
                         sheet.getSubimage(0, 0, 17,15),//1
                         sheet.getSubimage(18, 0, 17,15),//2
@@ -109,6 +115,36 @@ public class Sprite {
                         sheet.getSubimage(90, 0, 17,15),//6
                         sheet.getSubimage(72, 0, 17,15),//5
                         sheet.getSubimage(90, 0, 17,15),//6
+                };
+                break;
+            case 12: //blue flower
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(111,1,19,29),
+                        sheet.getSubimage(131,1,19,29)
+                };
+                break;
+            case 13: //yellow flower
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(111,31,19,29),
+                        sheet.getSubimage(131,31,19,29)
+                };
+                break;
+            case 14: //red flower
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(111,61,19,29),
+                        sheet.getSubimage(131,61,19,29)
+                };
+                break;
+            case 15: //purple flower
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(111,91,19,29),
+                        sheet.getSubimage(131,91,19,29)
+                };
+                break;
+            case 16: //white flower
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(111,121,19,29),
+                        sheet.getSubimage(131,121,19,29)
                 };
                 break;
         }
@@ -117,37 +153,78 @@ public class Sprite {
         currentFrameIndex = 0;
 
         // Initialize timer to update frames every 100 milliseconds
-        timer = new Timer(speed, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Update current frame index
-                currentFrameIndex = (currentFrameIndex + 1) % frames.length;
-                // Repaint the Game panel to display the new frame
-                gamePanel.repaint();
-            }
-        });
-        timer.start();
+        if (speed > 0) {
+            timer = new Timer(speed, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Update current frame index
+                    currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+                    // Repaint the Game panel to display the new frame
+                    gamePanel.repaint();
+                }
+            });
+            timer.start();
+        } else {
+            timer = new Timer(15000, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (currentFrameIndex == 1) {
+                        currentFrameIndex = 0;
+                        gamePanel.repaint();
+                    }
+                }
+            });
+            timer.start();
+        }
     }
 
     public void render(Graphics2D g2d) {
-        // Draw current frame onto the provided Graphics2D object
-        g2d.drawImage(frames[currentFrameIndex], x, y, null);
+        BufferedImage img = frames[currentFrameIndex];
+        if(mirrored){
+            img = flipImage(img);
+        }
+        g2d.drawImage(img, (int) x, (int) y, null);
     }
 
-    public void moveLeft() {
-        this.x -= 1;
-        System.out.println(this.x);
+    private BufferedImage flipImage(BufferedImage image) {
+
+        // Create a new buffered image with the same dimensions and type as the original
+        BufferedImage flippedImage = new BufferedImage(width, height, image.getType());
+
+        // Create an AffineTransform to flip the image horizontally
+        AffineTransform tx = new AffineTransform();
+
+        tx.scale(-1, 1); // Flip horizontally
+        tx.translate(-width, 0); // Translate to adjust position after flipping
+
+
+        // Draw the original image onto the flipped image using the AffineTransform
+        Graphics2D g2d = flippedImage.createGraphics();
+        g2d.drawImage(image, tx, null);
+        g2d.dispose();
+
+        return flippedImage;
     }
 
-    public void moveRight() {
-        this.x += 1;
+    public void moveLeft(double speed) {
+        this.mirrored = true;
+        this.x -= speed;
     }
 
-    public void moveUp() {
-        this.y -= 1;
+    public void moveRight(double speed) {
+        this.mirrored = false;
+        this.x += speed;
     }
 
-    public void moveDown() {
-        this.y += 1;
+    public void moveUp(double speed) {
+        this.y -= speed;
+    }
+
+    public void moveDown(double speed) {
+        this.y += speed;
+    }
+
+    public void collectPollen() {
+        this.currentFrameIndex = 1;
     }
 }
