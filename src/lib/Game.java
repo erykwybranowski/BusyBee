@@ -9,9 +9,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import javax.imageio.ImageIO;
 
 public class Game extends JPanel implements Runnable {
@@ -20,11 +18,13 @@ public class Game extends JPanel implements Runnable {
     private Random random;
     private Sprite bee;
     private Sprite[] flowers;
+    private Sprite[] hornets;
+    private int hornetsCount = 5;
+    private boolean hornetsMoved[];
     private final double INITIAL_SPEED = 2;
     private double currentSpeed = INITIAL_SPEED;
 
     private boolean running = false;
-    private Set<String> pressedKeys;
 
     private final int TARGET_FPS = 60;  // Target frames per second
     private final long OPTIMAL_TIME = 1000000000 / TARGET_FPS;  // Time per frame in nanoseconds
@@ -35,15 +35,31 @@ public class Game extends JPanel implements Runnable {
     // Define the number of pollen collections allowed and how much speed to reduce
     private static final int MAX_POLLEN = 3;
     private static final double SPEED_REDUCTION = 0.5;
+    private Set<String> pressedKeys = new HashSet<>();
+    private final Map<Integer, Boolean> keyStates = new HashMap<>();
+    private int heartCount = 3;
+    private int grassCount = 300;
+    private int flowerCount = 12;
 
     public Game(CardLayout cardLayout, JPanel cards) {
         super(new BorderLayout());
         setPreferredSize(new Dimension(400, 400));
         setBackground(new Color(81, 121, 71));
         setLayout(new FlowLayout(FlowLayout.CENTER));
+        setUpGraphics();
 
-        pressedKeys = new HashSet<>();
+        setUpKeyBindings();
 
+        setFocusable(true);
+        requestFocusInWindow();
+
+        setUpButtons(cardLayout, cards);
+
+        startGame();
+    }
+
+    private void setUpGraphics() {
+        // Load resources
         try {
             URL imageUrl = getClass().getResource("/sheet.png");
             sheet = ImageIO.read(imageUrl);
@@ -51,19 +67,41 @@ public class Game extends JPanel implements Runnable {
             e.printStackTrace();
         }
 
-        int grassCount = 300;
-        Sprite[] sprites = new Sprite[grassCount];
         random = new Random();
+
+        // Initialize sprites and bee
+        Sprite[] tempGrass = new Sprite[grassCount];
         for (int i = 0; i < grassCount; i++) {
-            sprites[i] = new Sprite(this, random.nextInt(10) + 1, 20 + random.nextInt(36) * 10, 30 + random.nextInt(21) * 16, 500);
+            tempGrass[i] = new Sprite(this, random.nextInt(10) + 1, 20 + random.nextInt(36) * 10, 30 + random.nextInt(21) * 16, 500);
         }
-        grass = sprites;
+        grass = tempGrass;
 
         bee = new Sprite(this, 11, ((int) getPreferredSize().getWidth() - 17) / 2, ((int) getPreferredSize().getHeight() - 15) / 2, 150);
+        Rectangle hiveRectangle = new Rectangle(((int) getPreferredSize().getWidth() - 52) / 2, ((int) getPreferredSize().getHeight() - 58) / 2, 52, 58);
 
-        int flowerCount = 12;
+        Sprite[] tempHornets = new Sprite[hornetsCount];
+        for (int i = 0; i < hornetsCount; i++) {
+            boolean valid = false;
+            do {
+                Sprite newHornet = new Sprite(this, 17, -100, -100, 300);
+                Rectangle newHornetBounds = newHornet.getBounds();
+
+                // Check if the new hornet intersects with the rectangle
+                boolean intersectsRectangle = newHornetBounds.intersects(hiveRectangle);
+
+                if (!intersectsRectangle) {
+                    valid = true;
+                    tempHornets[i] = newHornet;
+                }
+            } while (!valid);
+        }
+        hornets = tempHornets;
+        hornetsMoved = new boolean[hornetsCount];
+        for (boolean hornet : hornetsMoved) {
+            hornet = false;
+        }
+
         Sprite[] tempFlowers = new Sprite[flowerCount];
-        Rectangle rectangle = new Rectangle(((int) getPreferredSize().getWidth() - 52) / 2, ((int) getPreferredSize().getHeight() - 58) / 2, 52, 58);
 
         for (int i = 0; i < flowerCount; i++) {
             boolean valid = false;
@@ -72,7 +110,7 @@ public class Game extends JPanel implements Runnable {
                 Rectangle newFlowerBounds = newFlower.getBounds();
 
                 // Check if the new flower intersects with the rectangle
-                boolean intersectsRectangle = newFlowerBounds.intersects(rectangle);
+                boolean intersectsRectangle = newFlowerBounds.intersects(hiveRectangle);
 
                 // Check if the new flower intersects with any of the existing flowers
                 boolean intersectsOtherFlowers = false;
@@ -91,85 +129,41 @@ public class Game extends JPanel implements Runnable {
         }
 
         flowers = tempFlowers;
+    }
 
-
-        setupKeyBindings();
-
+    private void setUpButtons(CardLayout cardLayout, JPanel cards) {
         JButton backButton = new JButton("Back to Main Menu");
         backButton.addActionListener(e -> cardLayout.show(cards, "menu"));
         add(backButton, BorderLayout.NORTH);
-
-        startGame();
     }
 
-    private void setupKeyBindings() {
-        // Move Left
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("pressed LEFT"), "moveLeft");
-        getActionMap().put("moveLeft", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.add("LEFT");
-            }
-        });
+    private void setUpKeyBindings() {
+        InputMap inputMap = getInputMap(WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = getActionMap();
 
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("released LEFT"), "stopLeft");
-        getActionMap().put("stopLeft", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.remove("LEFT");
-            }
-        });
+        // Arrow Keys Bindings
+        inputMap.put(KeyStroke.getKeyStroke("pressed LEFT"), "moveLeft");
+        inputMap.put(KeyStroke.getKeyStroke("released LEFT"), "stopLeft");
+        inputMap.put(KeyStroke.getKeyStroke("pressed RIGHT"), "moveRight");
+        inputMap.put(KeyStroke.getKeyStroke("released RIGHT"), "stopRight");
+        inputMap.put(KeyStroke.getKeyStroke("pressed UP"), "moveUp");
+        inputMap.put(KeyStroke.getKeyStroke("released UP"), "stopUp");
+        inputMap.put(KeyStroke.getKeyStroke("pressed DOWN"), "moveDown");
+        inputMap.put(KeyStroke.getKeyStroke("released DOWN"), "stopDown");
 
-        // Move Right
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("pressed RIGHT"), "moveRight");
-        getActionMap().put("moveRight", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.add("RIGHT");
-            }
-        });
+        actionMap.put("moveLeft", new KeyAction("LEFT", true));
+        actionMap.put("stopLeft", new KeyAction("LEFT", false));
+        actionMap.put("moveRight", new KeyAction("RIGHT", true));
+        actionMap.put("stopRight", new KeyAction("RIGHT", false));
+        actionMap.put("moveUp", new KeyAction("UP", true));
+        actionMap.put("stopUp", new KeyAction("UP", false));
+        actionMap.put("moveDown", new KeyAction("DOWN", true));
+        actionMap.put("stopDown", new KeyAction("DOWN", false));
 
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("released RIGHT"), "stopRight");
-        getActionMap().put("stopRight", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.remove("RIGHT");
-            }
-        });
-
-        // Move Up
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("pressed UP"), "moveUp");
-        getActionMap().put("moveUp", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.add("UP");
-            }
-        });
-
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("released UP"), "stopUp");
-        getActionMap().put("stopUp", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.remove("UP");
-            }
-        });
-
-        // Move Down
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("pressed DOWN"), "moveDown");
-        getActionMap().put("moveDown", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.add("DOWN");
-            }
-        });
-
-        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("released DOWN"), "stopDown");
-        getActionMap().put("stopDown", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pressedKeys.remove("DOWN");
-            }
-        });
+        inputMap.put(KeyStroke.getKeyStroke("shift released LEFT"), "stopLeft");
+        inputMap.put(KeyStroke.getKeyStroke("shift released RIGHT"), "stopRight");
+        inputMap.put(KeyStroke.getKeyStroke("shift released UP"), "stopUp");
+        inputMap.put(KeyStroke.getKeyStroke("shift released DOWN"), "stopDown");
     }
 
     private void startGame() {
@@ -182,37 +176,68 @@ public class Game extends JPanel implements Runnable {
         Rectangle rectangle = new Rectangle(20, 20, 360, 350);
         Rectangle beeBounds = bee.getBounds();
 
-        // Move Left
-        if (pressedKeys.contains("LEFT")) {
-            if (beeBounds.x > rectangle.x) {  // Allow movement left if bee is not outside the left boundary
-                bee.moveLeft(currentSpeed);
-            }
-        }
+        if (pressedKeys.contains("LEFT") && beeBounds.x > rectangle.x) {
+            bee.moveLeft(currentSpeed); }
 
-        // Move Right
-        if (pressedKeys.contains("RIGHT")) {
-            if (beeBounds.x + beeBounds.width < rectangle.x + rectangle.width) {  // Allow right movement if not outside the right boundary
-                bee.moveRight(currentSpeed);
-            }
-        }
+        if (pressedKeys.contains("RIGHT") && beeBounds.x + beeBounds.width < rectangle.x + rectangle.width) {
+            bee.moveRight(currentSpeed); }
 
-        // Move Up
-        if (pressedKeys.contains("UP")) {
-            if (beeBounds.y > rectangle.y) {  // Allow movement up if bee is not outside the top boundary
-                bee.moveUp(currentSpeed);
-            }
-        }
+        if (pressedKeys.contains("UP") && beeBounds.y > rectangle.y) {
+            bee.moveUp(currentSpeed); }
 
-        // Move Down
-        if (pressedKeys.contains("DOWN")) {
-            if (beeBounds.y + beeBounds.height < rectangle.y + rectangle.height) {  // Allow down movement if not outside the bottom boundary
-                bee.moveDown(currentSpeed);
+        if (pressedKeys.contains("DOWN") && beeBounds.y + beeBounds.height < rectangle.y + rectangle.height) {
+            bee.moveDown(currentSpeed); }
+
+        for (int i = 0; i < hornetsCount; i++) {
+            if (!hornetsMoved[i]) {
+                if (points >= 100 * (i+1)) {
+                    hornets[i].moveRandom();
+                    hornetsMoved[i] = true;
+                }
+            } else {
+                // Get bee and hornet positions
+                int beeX = bee.getX();
+                int beeY = bee.getY();
+                int hornetX = hornets[i].getX();
+                int hornetY = hornets[i].getY();
+
+// Calculate direction vector from hornet to bee
+                int deltaX = beeX - hornetX;
+                int deltaY = beeY - hornetY;
+
+// Calculate the distance between the hornet and the bee
+                double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+// Set a movement speed for the hornet
+                int hornetSpeed = 2; // Adjust speed as needed
+
+// Normalize the direction vector and multiply by hornetSpeed
+                if (distance != 0) {
+                    int moveX = (int) (hornetSpeed * (deltaX / distance));
+                    int moveY = (int) (hornetSpeed * (deltaY / distance));
+
+                    // Move the hornet toward the bee
+                    if (moveX < 0) {
+                        hornets[i].moveRight(moveX);  // Move left
+                    }
+                    if (moveX > 0) {
+                        hornets[i].moveLeft(-moveX);  // Move right
+                    }
+                    if (moveY < 0) {
+                        hornets[i].moveDown(moveY);    // Move up
+                    }
+                    if (moveY > 0) {
+                        hornets[i].moveUp(-moveY);   // Move down
+                    }
+                }
+
             }
         }
 
         // Check for collisions with flowers
         checkCollisions();
     }
+
 
     private void checkCollisions() {
         // Handle pollen collection from flowers
@@ -231,7 +256,7 @@ public class Game extends JPanel implements Runnable {
                 beehiveImage.getWidth(), beehiveImage.getHeight());
 
         if (bee.getBounds().intersects(beehiveBounds)) {
-            points += pollenCount;  // Add points based on how much pollen was collected
+            points += pollenCount * pollenCount * 10;  // Add points based on how much pollen was collected
             pollenCount = 0;        // Reset pollen count
             currentSpeed = INITIAL_SPEED;  // Reset speed
         }
@@ -260,6 +285,10 @@ public class Game extends JPanel implements Runnable {
             sprite.render(g2d);
         }
 
+        for (Sprite sprite: hornets) {
+            sprite.render(g2d);
+        }
+
         BufferedImage beehive = sheet.getSubimage(0, 41, 52, 58);
         g2d.drawImage(beehive, ((int) getPreferredSize().getWidth() - beehive.getWidth()) / 2, ((int) getPreferredSize().getHeight() - beehive.getHeight()) / 2, this);
 
@@ -283,7 +312,12 @@ public class Game extends JPanel implements Runnable {
         // Draw pollen icons
         BufferedImage pollenIcon = sheet.getSubimage(63,16,17,17);
         for (int i = 0; i < pollenCount; i++) {
-            g2d.drawImage(pollenIcon, (int) getPreferredSize().getWidth() + 30 * i, 20, this);
+            g2d.drawImage(pollenIcon, (int) getPreferredSize().getWidth() + 10, 20 + 20 * i, this);
+        }
+
+        BufferedImage heart = sheet.getSubimage(81,16,15,14);
+        for (int i = 0; i < heartCount; i++) {
+            g2d.drawImage(heart, -25, 20 + 20 * i, this);
         }
 
         // Draw points over the beehive
@@ -320,4 +354,25 @@ public class Game extends JPanel implements Runnable {
             }
         }
     }
+
+    private class KeyAction extends AbstractAction {
+        private final String key;
+        private final boolean pressed;
+
+        public KeyAction(String key, boolean pressed) {
+            this.key = key;
+            this.pressed = pressed;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (pressed) {
+                pressedKeys.add(key);
+            } else {
+                pressedKeys.remove(key);
+            }
+        }
+    }
 }
+
+

@@ -10,6 +10,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Random;
 import javax.imageio.ImageIO;
 
 public class Sprite {
@@ -158,6 +159,14 @@ public class Sprite {
                         sheet.getSubimage(131,121,19,29)
                 };
                 break;
+            case 17: //hornet
+                width = 31;
+                height = 24;
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(0,16,width,height),
+                        sheet.getSubimage(32,16,width,height)
+                };
+                break;
         }
 
         // Initialize current frame index
@@ -247,6 +256,20 @@ public class Sprite {
 
     public Rectangle getBounds() {
         return new Rectangle((int) x, (int) y, width, height);
+    }
+
+    public void moveRandom() {
+        Random random = new Random();
+        this.x = 20 + random.nextInt(9) * 40;
+        this.y = 30 + random.nextInt(5) * 67;
+    }
+
+    public int getX() {
+        return (int) x;
+    }
+
+    public int getY() {
+        return (int) y;
     }
 
 }
