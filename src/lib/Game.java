@@ -16,30 +16,34 @@ public class Game extends JPanel implements Runnable {
     private final CardLayout cardLayout;
     private final JPanel cards;
     Thread gameThread;
+    private boolean running = false;
+    private Random random;
+    private final int TARGET_FPS = 60;  // Target frames per second
+    private final long OPTIMAL_TIME = 1000000000 / TARGET_FPS;  // Time per frame in nanoseconds
+    private Set<String> pressedKeys = new HashSet<>();
+
     public BufferedImage sheet;
     private Sprite[] grass;
-    private Random random;
     private Sprite bee;
     private Sprite[] flowers;
     private Sprite[] hornets;
+
     private int hornetsCount = 5;
     private boolean hornetsMoved[];
     private final double INITIAL_SPEED = 2;
     private static final double SPEED_REDUCTION = 0.4;
     private double currentSpeed = INITIAL_SPEED;
-    private boolean running = false;
-    private final int TARGET_FPS = 60;  // Target frames per second
-    private final long OPTIMAL_TIME = 1000000000 / TARGET_FPS;  // Time per frame in nanoseconds
     private int pollenCount = 0;  // Number of times pollen is collected
     private int points = 0;  // Game points
-    // Define the number of pollen collections allowed and how much speed to reduce
     private static final int MAX_POLLEN = 3;
-    private Set<String> pressedKeys = new HashSet<>();
     private int heartCount = 3;
     private int grassCount = 300;
     private int flowerCount = 20;
     private double hornetSpeed = 0.6;
     private int framesToChangeHornetDirection = 120;
+
+    private Rectangle gameOverRect;
+    private JButton returnToMenuButton;
 
     public Game(CardLayout cardLayout, JPanel cards) {
         super(new BorderLayout());
@@ -109,6 +113,8 @@ public class Game extends JPanel implements Runnable {
         }
 
         flowers = tempFlowers;
+
+        setUpGameOverScreen();
     }
 
     private void setUpButtons(CardLayout cardLayout, JPanel cards) {
@@ -128,13 +134,39 @@ public class Game extends JPanel implements Runnable {
         backButton.setBounds(0, 20, 100, 100);  // Position it similarly to the hearts (-25 isn't needed for components)
 
         // Add action listener for the button
-        backButton.addActionListener(e -> {
-            stopGame();  // Stop the game when going back to the main menu
-            cardLayout.show(cards, "menu");
-        });
+        backButton.addActionListener(e -> returnToMenu());
 
         add(backButton);
     }
+
+    private void setUpGameOverScreen() {
+        // Initialize the game over rectangle
+        gameOverRect = new Rectangle(50, 50, 200, 150); // Adjust position and size as needed
+
+        // Create "Return to Menu" button
+        ImageIcon returnToMenuIcon = new ImageIcon(sheet.getSubimage(0, 0, 17, 15)); // Coordinates for "Return to Menu" icon
+        Image scaledReturnToMenuImage = returnToMenuIcon.getImage().getScaledInstance(100, 50, Image.SCALE_SMOOTH);
+        ImageIcon scaledReturnToMenuIcon = new ImageIcon(scaledReturnToMenuImage);
+        returnToMenuButton = new JButton(scaledReturnToMenuIcon);
+        returnToMenuButton.setBounds(150, 100, 100, 50); // Position and size
+        returnToMenuButton.setBorderPainted(false);
+        returnToMenuButton.setFocusPainted(false);
+        returnToMenuButton.setContentAreaFilled(false);
+        returnToMenuButton.addActionListener(e -> returnToMenu());
+
+        // Add buttons to panel
+        setLayout(null); // Use absolute positioning
+        add(returnToMenuButton);
+
+        // Initially hide the buttons
+        returnToMenuButton.setVisible(false);
+    }
+
+    private void returnToMenu() {
+        stopGame();  // Stop the game when going back to the main menu
+        cardLayout.show(cards, "menu");
+    }
+
 
     private void setUpKeyBindings() {
         InputMap inputMap = getInputMap(WHEN_IN_FOCUSED_WINDOW);
@@ -179,7 +211,7 @@ public class Game extends JPanel implements Runnable {
 
     public void startGame() {
         if (gameThread == null || !gameThread.isAlive()) {
-            resetGame();  // Reset the game state before starting
+            setUpGraphics();
             running = true;
             gameThread = new Thread(this);
             gameThread.start();
@@ -190,6 +222,7 @@ public class Game extends JPanel implements Runnable {
     public void stopGame() {
         running = false;
 
+        pressedKeys.clear();
         bee.stopAnimation();
         Sprite[][] sprites = {grass, flowers, hornets};
         for (Sprite[] spriteArray : sprites) {
@@ -208,20 +241,11 @@ public class Game extends JPanel implements Runnable {
         gameThread = null;  // Reset the thread to null so it can be restarted
     }
 
-    private void resetGame() {
-        setUpGraphics();  // Reload game graphics if needed
-//        points = 0;  // Reset score
-//        pollenCount = 0;  // Reset pollen count
-//        heartCount = 3;  // Reset hearts/lives
-        pressedKeys.clear();  // Reset pressed keys
-        currentSpeed = INITIAL_SPEED;  // Reset speed
-    }
-
     private void showGameOverScreen() {
-        //GameOverDialog dialog = new GameOverDialog((JFrame) SwingUtilities.getWindowAncestor(this), cardLayout, cards, this);
-        //dialog.setVisible(true);  // This will show the modal dialog and pause the game thread until it's closed
+        running = false;
+        repaint(); // Trigger a repaint to show the game over screen
+        returnToMenuButton.setVisible(true);
     }
-
 
     private void updateGame() {
         Rectangle gameArea = new Rectangle(20, 20, 360, 350);
@@ -253,7 +277,6 @@ public class Game extends JPanel implements Runnable {
                 bee.setX((int) (getPreferredSize().getWidth()/2) - bee.getWidth()/2);
                 bee.setY((int) (getPreferredSize().getHeight()/2) - bee.getHeight()/2);
                 if (heartCount == 0) {
-                    running = false;
                     showGameOverScreen();
                 }
             }
@@ -497,6 +520,13 @@ public class Game extends JPanel implements Runnable {
         g2d.setFont(new Font("Arial", Font.BOLD, 14));
         g2d.setColor(Color.WHITE);
         g2d.drawString("Points: " + points, (int) (getPreferredSize().getWidth() / 2 - 20), (int) (getPreferredSize().getHeight() / 2 - 60));
+
+        if (!running) {
+            g2d.drawImage(sheet.getSubimage(0, 0, 100, 50), gameOverRect.x, gameOverRect.y, gameOverRect.width, gameOverRect.height, this);
+            g2d.setFont(new Font("Arial", Font.BOLD, 24));
+            g2d.setColor(Color.WHITE);
+            g2d.drawString("Game Over", gameOverRect.x + 20, gameOverRect.y + 30); // Adjust text position as needed
+        }
 
         g2d.dispose();
     }
