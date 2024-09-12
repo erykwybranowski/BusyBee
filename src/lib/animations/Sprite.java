@@ -14,6 +14,9 @@ import java.util.Random;
 import javax.imageio.ImageIO;
 
 public class Sprite {
+    public int framesRemaining = 0;
+    public double directionX;
+    public double directionY;
     private BufferedImage[] frames;
     private int currentFrameIndex;
     private Timer timer;
@@ -260,8 +263,21 @@ public class Sprite {
 
     public void moveRandom() {
         Random random = new Random();
-        this.x = 20 + random.nextInt(9) * 40;
-        this.y = 30 + random.nextInt(5) * 67;
+        boolean valid = false;
+        int x;
+        int y;
+        do {
+            x = 20 + random.nextInt(9) * 40;
+            y = 30 + random.nextInt(5) * 67;
+            Rectangle hiveRectangle = new Rectangle(174, 171, 52, 58);
+            Rectangle hornetRectangle = new Rectangle(x,y,31,24);
+            boolean intersectsHive = hiveRectangle.intersects(hornetRectangle);
+            if (!intersectsHive) {
+                valid = true;
+            }
+        } while (!valid);
+        this.x = x;
+        this.y = y;
     }
 
     public int getX() {
@@ -272,4 +288,25 @@ public class Sprite {
         return (int) y;
     }
 
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
+    public void stopAnimation() {
+        if (timer != null) {
+            timer.stop();  // Stop the animation timer
+        }
+    }
 }
