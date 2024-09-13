@@ -7,7 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.util.*;
 import javax.imageio.ImageIO;
@@ -21,6 +21,8 @@ public class Game extends JPanel implements Runnable {
     private final int TARGET_FPS = 60;  // Target frames per second
     private final long OPTIMAL_TIME = 1000000000 / TARGET_FPS;  // Time per frame in nanoseconds
     private Set<String> pressedKeys = new HashSet<>();
+    private String highscoreFilePath;  // Store file path here
+    private int highscore = 0;  // Store the loaded highscore
 
     public BufferedImage sheet;
     private Sprite[] grass;
@@ -44,6 +46,7 @@ public class Game extends JPanel implements Runnable {
 
     private Rectangle gameOverRect;
     private JButton returnToMenuButton;
+    private Font font;
 
     public Game(CardLayout cardLayout, JPanel cards) {
         super(new BorderLayout());
@@ -66,21 +69,33 @@ public class Game extends JPanel implements Runnable {
             e.printStackTrace();
         }
 
+        try {
+            InputStream is = getClass().getResourceAsStream("/GrapeSoda.ttf");
+            if (is != null) {
+                font = Font.createFont(Font.TRUETYPE_FONT, is);
+            } else {
+                System.out.println("Font not found!");
+            }
+        } catch (FontFormatException | IOException e) {
+            e.printStackTrace();
+            font = new Font("Monospaced", Font.PLAIN, 14); // Fallback font if loading fails
+        }
+
         random = new Random();
 
         // Initialize sprites and bee
         Sprite[] tempGrass = new Sprite[grassCount];
         for (int i = 0; i < grassCount; i++) {
-            tempGrass[i] = new Sprite(this, random.nextInt(10) + 1, 20 + random.nextInt(36) * 10, 30 + random.nextInt(21) * 16, 500);
+            tempGrass[i] = new Sprite(this, sheet, random.nextInt(10) + 1, 20 + random.nextInt(36) * 10, 30 + random.nextInt(21) * 16, 500);
         }
         grass = tempGrass;
 
-        bee = new Sprite(this, 11, ((int) getPreferredSize().getWidth() - 17) / 2, ((int) getPreferredSize().getHeight() - 15) / 2, 150);
+        bee = new Sprite(this, sheet, 11, ((int) getPreferredSize().getWidth() - 17) / 2, ((int) getPreferredSize().getHeight() - 15) / 2, 150);
         Rectangle hiveRectangle = new Rectangle(((int) getPreferredSize().getWidth() - 52) / 2, ((int) getPreferredSize().getHeight() - 58) / 2, 52, 58);
 
         Sprite[] tempHornets = new Sprite[hornetsCount];
         for (int i = 0; i < hornetsCount; i++) {
-            tempHornets[i] = new Sprite(this, 17, -100, -100, 300);
+            tempHornets[i] = new Sprite(this, sheet,17, -100, -100, 300);
         }
         hornets = tempHornets;
         hornetsMoved = new boolean[hornetsCount];
@@ -90,7 +105,7 @@ public class Game extends JPanel implements Runnable {
         for (int i = 0; i < flowerCount; i++) {
             boolean valid = false;
             do {
-                Sprite newFlower = new Sprite(this, random.nextInt(5) + 12, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
+                Sprite newFlower = new Sprite(this, sheet,random.nextInt(5) + 12, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
                 Rectangle newFlowerBounds = newFlower.getBounds();
 
                 // Check if the new flower intersects with the rectangle
@@ -118,9 +133,9 @@ public class Game extends JPanel implements Runnable {
     }
 
     private void setUpButtons(CardLayout cardLayout, JPanel cards) {
-        ImageIcon backButtonIcon = new ImageIcon(sheet.getSubimage(0, 0, 17, 15));  // Coordinates of the "Back" icon
+        ImageIcon backButtonIcon = new ImageIcon(sheet.getSubimage(34, 137, 16, 13));  // Coordinates of the "Back" icon
         // Scale the icon using AffineTransform (similar to g2d scaling)
-        Image scaledBackButtonImage = backButtonIcon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+        Image scaledBackButtonImage = backButtonIcon.getImage().getScaledInstance(96, 78, Image.SCALE_DEFAULT);
         ImageIcon scaledBackButtonIcon = new ImageIcon(scaledBackButtonImage);
 
         // Create the button with the scaled icon
@@ -141,24 +156,50 @@ public class Game extends JPanel implements Runnable {
 
     private void setUpGameOverScreen() {
         // Initialize the game over rectangle
-        gameOverRect = new Rectangle(50, 50, 200, 150); // Adjust position and size as needed
+        gameOverRect = new Rectangle(100, 140, 200, 120); // Adjust position and size as needed
 
-        // Create "Return to Menu" button
-        ImageIcon returnToMenuIcon = new ImageIcon(sheet.getSubimage(0, 0, 17, 15)); // Coordinates for "Return to Menu" icon
-        Image scaledReturnToMenuImage = returnToMenuIcon.getImage().getScaledInstance(100, 50, Image.SCALE_SMOOTH);
+        // Create "Return to Menu" button with icon
+        int buttonHeight = 70;
+        int buttonWidth = 230;
+        ImageIcon returnToMenuIcon = new ImageIcon(sheet.getSubimage(34, 129, 23, 7)); // Coordinates for "Return to Menu" icon
+        Image scaledReturnToMenuImage = returnToMenuIcon.getImage().getScaledInstance(buttonWidth, buttonHeight, Image.SCALE_DEFAULT);
         ImageIcon scaledReturnToMenuIcon = new ImageIcon(scaledReturnToMenuImage);
-        returnToMenuButton = new JButton(scaledReturnToMenuIcon);
-        returnToMenuButton.setBounds(150, 100, 100, 50); // Position and size
+
+        returnToMenuButton = new JButton("Wróć do Menu", scaledReturnToMenuIcon); // Add text and icon
+
+        // Set font and text color for the button text
+        returnToMenuButton.setFont(font.deriveFont(Font.BOLD, 20f)); // Use the custom font
+        returnToMenuButton.setForeground(Color.WHITE); // Set text color to white
+
+        // Remove borders and background
         returnToMenuButton.setBorderPainted(false);
         returnToMenuButton.setFocusPainted(false);
-        returnToMenuButton.setContentAreaFilled(false);
+        returnToMenuButton.setContentAreaFilled(false); // Make background transparent
+
+        // Align the text in the center of the button, on top of the icon
+        returnToMenuButton.setHorizontalTextPosition(JButton.CENTER);
+        returnToMenuButton.setVerticalTextPosition(JButton.CENTER);
+
+        // Calculate button position relative to the game area
+        int gameAreaWidth = 400;
+        System.out.println(getWidth());
+        System.out.println(getHeight());
+        System.out.println(getPreferredSize().getWidth());
+        int gameAreaX = (int) ((getWidth() - gameAreaWidth) / 2); // X coordinate of game area relative to the screen
+        int gameAreaY = (int) ((getHeight() - getPreferredSize().getHeight()) / 2); // Y coordinate of game area relative to the screen
+
+        // Set button position and size relative to the game area
+        returnToMenuButton.setBounds(gameAreaX + (gameAreaWidth - buttonWidth) / 2,
+                gameAreaY + (int) ((gameAreaWidth - buttonHeight) / 1.5), buttonWidth, buttonHeight); // Center button below high score
+
+        // Add action listener for returning to menu
         returnToMenuButton.addActionListener(e -> returnToMenu());
 
-        // Add buttons to panel
+        // Add the button to the panel
         setLayout(null); // Use absolute positioning
         add(returnToMenuButton);
 
-        // Initially hide the buttons
+        // Initially hide the button
         returnToMenuButton.setVisible(false);
     }
 
@@ -242,9 +283,15 @@ public class Game extends JPanel implements Runnable {
     }
 
     private void showGameOverScreen() {
+        loadHighscore();  // Load the current highscore at game over
+
+        if (points > highscore) {
+            highscore = points;
+            saveHighscore(highscore);  // Save the new highscore
+        }
         running = false;
-        repaint(); // Trigger a repaint to show the game over screen
         returnToMenuButton.setVisible(true);
+        repaint(); // Trigger a repaint to show the game over screen
     }
 
     private void updateGame() {
@@ -444,6 +491,43 @@ public class Game extends JPanel implements Runnable {
         }
     }
 
+    private void setHighscoreFilePath() {
+        String userHome = System.getProperty("user.home");
+        String folderPath = userHome + File.separator + "AppData" + File.separator + "Local" + File.separator + "BusyBee";
+        File folder = new File(folderPath);
+        if (!folder.exists()) {
+            folder.mkdirs();  // Create directories if they don't exist
+        }
+        highscoreFilePath = folderPath + File.separator + "highscore.txt";
+    }
+
+    // Load the highscore from the file
+    private void loadHighscore() {
+        setHighscoreFilePath();
+        File highscoreFile = new File(highscoreFilePath);
+
+        if (highscoreFile.exists()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(highscoreFile))) {
+                String line = reader.readLine();
+                if (line != null && line.startsWith("Highscore=")) {
+                    highscore = Integer.parseInt(line.split("=")[1]);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // Save the new highscore to the file
+    private void saveHighscore(int newHighscore) {
+        setHighscoreFilePath();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(highscoreFilePath))) {
+            writer.write("Highscore=" + newHighscore);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -516,16 +600,44 @@ public class Game extends JPanel implements Runnable {
             g2d.drawImage(heart, -10 - heart.getWidth(), 20 + 20 * i, this);
         }
 
+        FontMetrics metrics;
         // Draw points over the beehive
-        g2d.setFont(new Font("Arial", Font.BOLD, 14));
-        g2d.setColor(Color.WHITE);
-        g2d.drawString("Points: " + points, (int) (getPreferredSize().getWidth() / 2 - 20), (int) (getPreferredSize().getHeight() / 2 - 60));
+        g2d.setFont(font.deriveFont(20f));
+        metrics = g2d.getFontMetrics(); // Get FontMetrics for the current font
+        String pointsText = "" + points + " points";
+        int pointsTextWidth = metrics.stringWidth(pointsText);
+
+        g2d.setColor(new Color(255, 231, 78));
+        g2d.drawString(pointsText, (int) (getPreferredSize().getWidth() / 2 - pointsTextWidth / 2), (int) (getPreferredSize().getHeight() / 2 - 70));
 
         if (!running) {
-            g2d.drawImage(sheet.getSubimage(0, 0, 100, 50), gameOverRect.x, gameOverRect.y, gameOverRect.width, gameOverRect.height, this);
-            g2d.setFont(new Font("Arial", Font.BOLD, 24));
+            // Draw the Game Over window
+            g2d.drawImage(sheet.getSubimage(0, 129, 33, 20), gameOverRect.x, gameOverRect.y, gameOverRect.width, gameOverRect.height, this);
+
+            // Center "Game over" text horizontally
+            g2d.setFont(font.deriveFont(24f));
+            metrics = g2d.getFontMetrics(); // Get FontMetrics for the new font size
+            String gameOverText = "Koniec gry";
+            int gameOverTextWidth = metrics.stringWidth(gameOverText);
+
             g2d.setColor(Color.WHITE);
-            g2d.drawString("Game Over", gameOverRect.x + 20, gameOverRect.y + 30); // Adjust text position as needed
+            g2d.drawString(gameOverText, (int) (gameOverRect.x + (gameOverRect.width / 2 - gameOverTextWidth / 2)), gameOverRect.y + 30); // Adjust vertical position as needed
+
+            // Check if it's a new highscore or not
+            String highscoreText;
+            g2d.setFont(font.deriveFont(20f));
+            metrics = g2d.getFontMetrics(); // Get FontMetrics for the new font size
+            if (points == highscore) {
+                g2d.setColor(new Color(255, 231, 78));
+                highscoreText = "Nowy rekord!";
+            } else {
+                g2d.setColor(new Color(186, 186, 186));
+                highscoreText = "Rekord: " + highscore;
+            }
+
+            // Draw highscore text under the game over message
+            int highscoreTextWidth = metrics.stringWidth(highscoreText);
+            g2d.drawString(highscoreText, (int) (gameOverRect.x + (gameOverRect.width / 2 - highscoreTextWidth / 2)), gameOverRect.y + 55);  // Adjust y-position as needed
         }
 
         g2d.dispose();

@@ -11,7 +11,7 @@ public class MainMenuGameSwitcher {
 
     public MainMenuGameSwitcher() {
         // Create the frame
-        frame = new JFrame("Nektar");
+        frame = new JFrame("Busy Bee");
 
         // Set frame properties
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

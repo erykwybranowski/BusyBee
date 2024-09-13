@@ -27,11 +27,10 @@ public class Sprite {
     private int height = 0;
     private final int flowerTime = 20000;
 
-    public Sprite(Game gamePanel, int type, int x, int y, int speed) {
+    public Sprite(JPanel gamePanel, BufferedImage sheet, int type, int x, int y, int speed) {
         this.x = x;
         this.y = y;
         // Load sprite sheet and define frames
-        BufferedImage sheet = gamePanel.sheet;
         switch (type) {
             case 1: //grass 1
                 frames = new BufferedImage[]{
