@@ -8,6 +8,7 @@ public class MainMenuGameSwitcher {
     private JPanel cards;
     private CardLayout cardLayout;
     private Game gamePanel;
+    private MainMenu mainMenuPanel;
 
     public MainMenuGameSwitcher() {
         // Create the frame
@@ -23,8 +24,7 @@ public class MainMenuGameSwitcher {
         frame.add(cards);
 
         // Create the main menu panel
-        JPanel mainMenuPanel = new MainMenu(cardLayout, cards, this);
-        cards.add(mainMenuPanel, "menu");
+        startNewMenu();
 
         // Configure full-screen mode
         setFullScreenMode();
@@ -54,10 +54,23 @@ public class MainMenuGameSwitcher {
             cards.remove(gamePanel);  // Remove the old game panel
             gamePanel.stopGame();     // Stop the old game
         }
-        gamePanel = new Game(cardLayout, cards);  // Create a fresh game instance
+        gamePanel = new Game(cardLayout, cards, this);  // Create a fresh game instance
         cards.add(gamePanel, "game");
         cardLayout.show(cards, "game");
         gamePanel.startGame();  // Start the new game
+        cards.revalidate();      // Ensure the layout is refreshed
+        cards.repaint();
+    }
+
+    public void startNewMenu() {
+        if (mainMenuPanel != null) {
+            cards.remove(mainMenuPanel);  // Remove the old game panel
+            mainMenuPanel.stopMenu();     // Stop the old game
+        }
+        mainMenuPanel = new MainMenu(cardLayout, cards, this);  // Create a fresh game instance
+        cards.add(mainMenuPanel, "menu");
+        cardLayout.show(cards, "menu");
+        mainMenuPanel.start();  // Start the new game
         cards.revalidate();      // Ensure the layout is refreshed
         cards.repaint();
     }

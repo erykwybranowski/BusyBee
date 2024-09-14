@@ -169,13 +169,29 @@ public class Sprite {
                         sheet.getSubimage(32,16,width,height)
                 };
                 break;
+            case 18: //heart
+                width = 15;
+                height = 14;
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(81,16,width,height),
+                        sheet.getSubimage(81,16,width,height)
+                };
+                break;
+            case 19: //combo
+                width = 13;
+                height = 13;
+                frames = new BufferedImage[]{
+                        sheet.getSubimage(51,137,width,height),
+                        sheet.getSubimage(51,137,width,height)
+                };
+                break;
         }
 
         // Initialize current frame index
         currentFrameIndex = 0;
 
         // Initialize timer to update frames every 100 milliseconds
-        if (speed > 0) {
+        if (type == 17 || type == 11) {
             timer = new Timer(speed, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -186,7 +202,7 @@ public class Sprite {
                 }
             });
             timer.start();
-        } else {
+        } else if (speed == 0) {
             timer = new Timer(flowerTime, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -197,6 +213,28 @@ public class Sprite {
                 }
             });
             timer.start();
+        } else if (speed == -1) {
+            double amplitude = 0.5;  // The maximum vertical distance from the central position
+            double frequency = 0.1; // How fast the oscillation happens
+            final double[] time = {0};  // Time counter to increment over each frame
+
+            timer = new Timer(30, new ActionListener() {  // Timer triggers every 30ms
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Calculate the new vertical offset using the sine function
+                    double offsetY = amplitude * Math.sin(frequency * time[0]);
+
+                    // Use the moveUp method with the calculated offset
+                    moveUp(offsetY);  // Move the sprite up and down based on sine wave
+
+                    // Increment time for the next frame
+                    time[0] += 1;
+
+                    // Repaint the game panel to show the new position
+                    gamePanel.repaint();
+                }
+            });
+            timer.start();  // Start the timer
         }
     }
 
@@ -256,11 +294,15 @@ public class Sprite {
         return currentFrameIndex;
     }
 
+    public void setCurrentFrameIndex(int value) {
+        currentFrameIndex = value;
+    }
+
     public Rectangle getBounds() {
         return new Rectangle((int) x, (int) y, width, height);
     }
 
-    public void moveRandom() {
+    public void moveRandom(Sprite[][] omitList) {
         Random random = new Random();
         boolean valid = false;
         int x;
@@ -269,9 +311,17 @@ public class Sprite {
             x = 20 + random.nextInt(9) * 40;
             y = 30 + random.nextInt(5) * 67;
             Rectangle hiveRectangle = new Rectangle(174, 171, 52, 58);
-            Rectangle hornetRectangle = new Rectangle(x,y,31,24);
-            boolean intersectsHive = hiveRectangle.intersects(hornetRectangle);
-            if (!intersectsHive) {
+            Rectangle spriteRectangle = new Rectangle(x, y, width, height);
+            boolean intersectsHive = hiveRectangle.intersects(spriteRectangle);
+            boolean intersectsSprite = false;
+            for (Sprite[] spriteType : omitList) {
+                for (Sprite sprite : spriteType) {
+                    if (sprite.getBounds().intersects(spriteRectangle)) {
+                        intersectsSprite = true;
+                    }
+                }
+            }
+            if (!intersectsHive && !intersectsSprite) {
                 valid = true;
             }
         } while (!valid);
@@ -307,5 +357,9 @@ public class Sprite {
         if (timer != null) {
             timer.stop();  // Stop the animation timer
         }
+    }
+
+    public int getFramesLength() {
+        return frames.length;
     }
 }

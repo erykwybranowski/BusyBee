@@ -11,10 +11,12 @@ import java.io.*;
 import java.net.URL;
 import java.util.*;
 import javax.imageio.ImageIO;
+import javax.swing.Timer;
 
 public class Game extends JPanel implements Runnable {
     private final CardLayout cardLayout;
     private final JPanel cards;
+    private final MainMenuGameSwitcher switcher;
     Thread gameThread;
     private boolean running = false;
     private Random random;
@@ -31,7 +33,7 @@ public class Game extends JPanel implements Runnable {
     private Sprite[] hornets;
 
     private int hornetsCount = 5;
-    private boolean hornetsMoved[];
+    private boolean[] hornetsMoved;
     private final double INITIAL_SPEED = 2;
     private static final double SPEED_REDUCTION = 0.4;
     private double currentSpeed = INITIAL_SPEED;
@@ -40,6 +42,7 @@ public class Game extends JPanel implements Runnable {
     private static final int MAX_POLLEN = 3;
     private int heartCount = 3;
     private int grassCount = 300;
+    private Timer grassTimer;
     private int flowerCount = 20;
     private double hornetSpeed = 0.6;
     private int framesToChangeHornetDirection = 120;
@@ -48,8 +51,19 @@ public class Game extends JPanel implements Runnable {
     private JButton returnToMenuButton;
     private Font font;
 
-    public Game(CardLayout cardLayout, JPanel cards) {
+    private int healthBoostersCount = 2;
+    private boolean[] healthBoostersMoved;
+    private Sprite[] healthBoosters;
+    private Timer healthBoostersTimer;
+
+    private int comboBoostersCount = 2;
+    private int[] comboBoostersMoved;
+    private Sprite[] comboBoosters;
+    private Timer comboBoostersTimer;
+
+    public Game(CardLayout cardLayout, JPanel cards, MainMenuGameSwitcher switcher) {
         super(new BorderLayout());
+        this.switcher = switcher;
         setPreferredSize(new Dimension(400, 400));
         setBackground(new Color(81, 121, 71));
         setLayout(new FlowLayout(FlowLayout.CENTER));
@@ -90,6 +104,18 @@ public class Game extends JPanel implements Runnable {
         }
         grass = tempGrass;
 
+        grassTimer = new Timer(500, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Update current frame index
+                for (Sprite sprite : grass) {
+                    sprite.setCurrentFrameIndex((sprite.getCurrentFrameIndex() + 1) % sprite.getFramesLength());
+                }
+                repaint();
+            }
+        });
+        grassTimer.start();
+
         bee = new Sprite(this, sheet, 11, ((int) getPreferredSize().getWidth() - 17) / 2, ((int) getPreferredSize().getHeight() - 15) / 2, 150);
         Rectangle hiveRectangle = new Rectangle(((int) getPreferredSize().getWidth() - 52) / 2, ((int) getPreferredSize().getHeight() - 58) / 2, 52, 58);
 
@@ -100,36 +126,87 @@ public class Game extends JPanel implements Runnable {
         hornets = tempHornets;
         hornetsMoved = new boolean[hornetsCount];
 
-        Sprite[] tempFlowers = new Sprite[flowerCount];
+        Sprite[] tempHealthBoosters = new Sprite[healthBoostersCount];
+        for (int i = 0; i < healthBoostersCount; i++) {
+            tempHealthBoosters[i] = new Sprite(this, sheet,18, -100, -100, -1);
+        }
+        healthBoosters = tempHealthBoosters;
+        healthBoostersMoved = new boolean[healthBoostersCount];
 
-        for (int i = 0; i < flowerCount; i++) {
-            boolean valid = false;
-            do {
-                Sprite newFlower = new Sprite(this, sheet,random.nextInt(5) + 12, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
-                Rectangle newFlowerBounds = newFlower.getBounds();
-
-                // Check if the new flower intersects with the rectangle
-                boolean intersectsRectangle = newFlowerBounds.intersects(hiveRectangle);
-
-                // Check if the new flower intersects with any of the existing flowers
-                boolean intersectsOtherFlowers = false;
-                for (int j = 0; j < i; j++) {
-                    if (newFlowerBounds.intersects(tempFlowers[j].getBounds())) {
-                        intersectsOtherFlowers = true;
+        healthBoostersTimer = new Timer(new Random().nextInt(10000) + 10000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                for (int i = 0; i< healthBoostersCount; i++) {
+                    if (!healthBoostersMoved[i]) {
+                        healthBoostersMoved[i] = true;
+                        Sprite[][] list = {healthBoosters, comboBoosters};
+                        healthBoosters[i].moveRandom(list);
+                        healthBoostersTimer.setDelay(new Random().nextInt(10000) + 10000);
                         break;
                     }
                 }
+            }
+        });
+        healthBoostersTimer.start();
 
-                if (!intersectsRectangle && !intersectsOtherFlowers) {
+        Sprite[] tempComboBoosters = new Sprite[comboBoostersCount];
+        for (int i = 0; i < comboBoostersCount; i++) {
+            tempComboBoosters[i] = new Sprite(this, sheet,19, -100, -100, -1);
+        }
+        comboBoosters = tempComboBoosters;
+        comboBoostersMoved = new int[comboBoostersCount];
+        for (int i = 0; i < comboBoostersCount; i++) {
+            comboBoostersMoved[i] = 0;
+        }
+
+        comboBoostersTimer = new Timer(new Random().nextInt(10000) + 10000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                for (int i = 0; i< comboBoostersCount; i++) {
+                    if (comboBoostersMoved[i] == 0) {
+                        comboBoostersMoved[i] = 1;
+                        Sprite[][] list = {healthBoosters, comboBoosters};
+                        comboBoosters[i].moveRandom(list);
+                        comboBoostersTimer.setDelay(new Random().nextInt(10000) + 10000);
+                        break;
+                    }
+                }
+            }
+        });
+        comboBoostersTimer.start();
+
+        flowers = spreadSprites(12,5,hiveRectangle,flowerCount);
+
+        setUpGameOverScreen();
+    }
+
+    private Sprite[] spreadSprites(int typeRangeFirst, int typeRangeCount, Rectangle hiveRectangle, int spriteCount) {
+        Sprite[] tempSprites = new Sprite[spriteCount];
+
+        for (int i = 0; i < spriteCount; i++) {
+            boolean valid = false;
+            do {
+                Sprite newSprite = new Sprite(this, sheet,random.nextInt(typeRangeCount) + typeRangeFirst, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
+                Rectangle newSpriteBounds = newSprite.getBounds();
+
+                // Check if the new flower intersects with the rectangle
+                boolean intersectsRectangle = newSpriteBounds.intersects(hiveRectangle);
+
+                // Check if the new flower intersects with any of the existing flowers
+                boolean intersectsOtherSprites = false;
+                for (int j = 0; j < i; j++) {
+                    if (newSpriteBounds.intersects(tempSprites[j].getBounds())) {
+                        intersectsOtherSprites = true;
+                        break;
+                    }
+                }
+                if (!intersectsRectangle && !intersectsOtherSprites) {
                     valid = true;
-                    tempFlowers[i] = newFlower;
+                    tempSprites[i] = newSprite;
                 }
             } while (!valid);
         }
-
-        flowers = tempFlowers;
-
-        setUpGameOverScreen();
+        return tempSprites;
     }
 
     private void setUpButtons(CardLayout cardLayout, JPanel cards) {
@@ -182,9 +259,6 @@ public class Game extends JPanel implements Runnable {
 
         // Calculate button position relative to the game area
         int gameAreaWidth = 400;
-        System.out.println(getWidth());
-        System.out.println(getHeight());
-        System.out.println(getPreferredSize().getWidth());
         int gameAreaX = (int) ((getWidth() - gameAreaWidth) / 2); // X coordinate of game area relative to the screen
         int gameAreaY = (int) ((getHeight() - getPreferredSize().getHeight()) / 2); // Y coordinate of game area relative to the screen
 
@@ -205,9 +279,8 @@ public class Game extends JPanel implements Runnable {
 
     private void returnToMenu() {
         stopGame();  // Stop the game when going back to the main menu
-        cardLayout.show(cards, "menu");
+        this.switcher.startNewMenu();
     }
-
 
     private void setUpKeyBindings() {
         InputMap inputMap = getInputMap(WHEN_IN_FOCUSED_WINDOW);
@@ -265,7 +338,7 @@ public class Game extends JPanel implements Runnable {
 
         pressedKeys.clear();
         bee.stopAnimation();
-        Sprite[][] sprites = {grass, flowers, hornets};
+        Sprite[][] sprites = {grass, flowers, hornets, comboBoosters, healthBoosters};
         for (Sprite[] spriteArray : sprites) {
             for (Sprite sprite : spriteArray) {
                 sprite.stopAnimation();
@@ -314,6 +387,28 @@ public class Game extends JPanel implements Runnable {
         // Check for collisions with flowers
         checkFlowersCollisions();
         checkHornetsCollisions();
+
+        defineHealthBoosters();
+        defineComboBoosters();
+
+        // Handle interaction with beehive
+        BufferedImage beehiveImage = sheet.getSubimage(0, 41, 52, 58);
+        Rectangle beehiveBounds = new Rectangle(((int) getPreferredSize().getWidth() - beehiveImage.getWidth()) / 2,
+                ((int) getPreferredSize().getHeight() - beehiveImage.getHeight()) / 2,
+                beehiveImage.getWidth(), beehiveImage.getHeight());
+
+        if (bee.getBounds().intersects(beehiveBounds)) {
+            int combo = 1;
+            for (int i = 0; i < comboBoostersCount; i++) {
+                if (comboBoostersMoved[i] == 2) {
+                    combo *= 2;
+                    comboBoostersMoved[i] = 0;
+                }
+            }
+            points += pollenCount * pollenCount * 10 * combo;  // Add points based on how much pollen was collected
+            pollenCount = 0;        // Reset pollen count
+            currentSpeed = INITIAL_SPEED;  // Reset speed
+        }
     }
 
     private void checkHornetsCollisions() {
@@ -336,7 +431,8 @@ public class Game extends JPanel implements Runnable {
         for (int i = 0; i < hornetsCount; i++) {
             if (!hornetsMoved[i]) {
                 if (points >= 100 * (i + 1)) {
-                    hornets[i].moveRandom();
+                    Sprite[][] list = {hornets};
+                    hornets[i].moveRandom(list);
                     hornetsMoved[i] = true;
                 }
             } else if (!bee.getBounds().intersects(hiveRectangle.getBounds())) {
@@ -380,8 +476,6 @@ public class Game extends JPanel implements Runnable {
                     }
                 }
             } else {
-                // HERE - Random movement when hornet is near the hive
-
                 if (hornets[i].framesRemaining <= 0) {
                     // Choose a new random direction
                     double angle = Math.random() * 2 * Math.PI; // Random angle in radians
@@ -477,17 +571,28 @@ public class Game extends JPanel implements Runnable {
                 flower.collectPollen(this);
             }
         }
+    }
 
-        // Handle interaction with beehive
-        BufferedImage beehiveImage = sheet.getSubimage(0, 41, 52, 58);
-        Rectangle beehiveBounds = new Rectangle(((int) getPreferredSize().getWidth() - beehiveImage.getWidth()) / 2,
-                ((int) getPreferredSize().getHeight() - beehiveImage.getHeight()) / 2,
-                beehiveImage.getWidth(), beehiveImage.getHeight());
+    private void defineHealthBoosters() {
+        for (int i = 0; i < healthBoostersCount; i++) {
+            if (bee.getBounds().intersects(healthBoosters[i].getBounds())) {
+                healthBoosters[i].setX(-100);
+                healthBoosters[i].setY(-100);
+                healthBoostersMoved[i] = false;
+                if (heartCount < 3) {
+                    heartCount++;
+                }
+            }
+        }
+    }
 
-        if (bee.getBounds().intersects(beehiveBounds)) {
-            points += pollenCount * pollenCount * 10;  // Add points based on how much pollen was collected
-            pollenCount = 0;        // Reset pollen count
-            currentSpeed = INITIAL_SPEED;  // Reset speed
+    private void defineComboBoosters() {
+        for (int i = 0; i < comboBoostersCount; i++) {
+            if (bee.getBounds().intersects(comboBoosters[i].getBounds())) {
+                comboBoosters[i].setX(-100);
+                comboBoosters[i].setY(-100);
+                comboBoostersMoved[i] = 2;
+            }
         }
     }
 
@@ -587,6 +692,14 @@ public class Game extends JPanel implements Runnable {
             }
         }
 
+        for (Sprite sprite : healthBoosters) {
+            sprite.render(g2d);
+        }
+
+        for (Sprite sprite : comboBoosters) {
+            sprite.render(g2d);
+        }
+
         bee.render(g2d);
 
         // Draw pollen icons
@@ -606,9 +719,33 @@ public class Game extends JPanel implements Runnable {
         metrics = g2d.getFontMetrics(); // Get FontMetrics for the current font
         String pointsText = "" + points + " points";
         int pointsTextWidth = metrics.stringWidth(pointsText);
+        int pointsTextHeight = metrics.getHeight(); // Get the height of the text
 
-        g2d.setColor(new Color(255, 231, 78));
-        g2d.drawString(pointsText, (int) (getPreferredSize().getWidth() / 2 - pointsTextWidth / 2), (int) (getPreferredSize().getHeight() / 2 - 70));
+        // Calculate position for centering the text
+        int pointsTextX = (int) (getPreferredSize().getWidth() / 2 - pointsTextWidth / 2);
+        int pointsTextY = 15;  // The Y position where the text will be drawn
+
+        // Set background color and draw the rectangle
+        g2d.setColor(new Color(142, 106, 77));  // Orange background
+        g2d.fillRect(pointsTextX - 5, pointsTextY - pointsTextHeight + 3, pointsTextWidth + 10, pointsTextHeight);
+
+        // Set the text color and draw the points text over the rectangle
+        g2d.setColor(new Color(255, 255, 255));  // Yellowish text color
+        g2d.drawString(pointsText, pointsTextX, pointsTextY);
+
+        int comboFromBoosters = 1;
+        for (int value : comboBoostersMoved) {
+            if (value == 2) {
+                comboFromBoosters *= 2;
+            }
+        }
+        int comboFromPollen = 1;
+        if (pollenCount > 0) {
+            comboFromPollen = pollenCount;
+        }
+        int combo = comboFromPollen * comboFromBoosters;
+        String comboText = "x" + combo;
+        g2d.drawString(comboText, (int) (getPreferredSize().getWidth() + 10), 90);
 
         if (!running) {
             // Draw the Game Over window

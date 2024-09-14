@@ -36,6 +36,8 @@ public class MainMenu extends JPanel implements Runnable {
     private JButton exitGameButton;
     public BufferedImage sheet;
     private MainMenuGameSwitcher switcher;
+    private Timer grassTimer;
+    private Thread menuThread;
 
     public MainMenu(CardLayout cardLayout, JPanel cards, MainMenuGameSwitcher switcher) {
         this.switcher = switcher;
@@ -46,13 +48,7 @@ public class MainMenu extends JPanel implements Runnable {
         setBackground(new Color(89, 160, 74));
         setPreferredSize(new Dimension(600, 400));  // Adjust size as needed
         setLayout(null);  // Absolute positioning for buttons
-
-        // Load resources and sprites
         setUpGraphics();
-        SwingUtilities.invokeLater(() -> setUpTitleAndButtons());
-
-        // Start the animation thread
-        start();
     }
 
     private void setUpGraphics() {
@@ -85,6 +81,18 @@ public class MainMenu extends JPanel implements Runnable {
             grass[i] = new Sprite(this, sheet, random.nextInt(10) + 1, random.nextInt(59) * 10, random.nextInt(39) * 10, 500);
         }
 
+        grassTimer = new Timer(500, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Update current frame index
+                for (Sprite sprite : grass) {
+                    sprite.setCurrentFrameIndex((sprite.getCurrentFrameIndex() + 1) % sprite.getFramesLength());
+                }
+                repaint();
+            }
+        });
+        grassTimer.start();
+
         // Flower sprites
         int flowerCount = 40;  // Adjust the number as needed
         flowers = new Sprite[flowerCount];
@@ -93,13 +101,13 @@ public class MainMenu extends JPanel implements Runnable {
         }
 
         // Bee sprite
-        bee = new Sprite(this,sheet, 11, -50, 300, 150);  // Starting just outside the left edge
+        bee = new Sprite(this,sheet, 11, -50, 360, 150);  // Starting just outside the left edge
 
         // Hornets sprites
         int hornetCount = 5;
         hornets = new Sprite[hornetCount];
         for (int i = 0; i < hornetCount; i++) {
-            hornets[i] = new Sprite(this, sheet,17, -100 - i * 50, 300, 300);  // Following the bee
+            hornets[i] = new Sprite(this, sheet,17, -100 - i * 50, 360, 300);  // Following the bee
         }
 
         // Beehive rectangle (static)
@@ -117,7 +125,7 @@ public class MainMenu extends JPanel implements Runnable {
 
         // Create the title label "Busy Bee"
         JLabel titleLabel = new JLabel("Busy Bee");
-        titleLabel.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 10% of height
+        titleLabel.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 20% of height
         titleLabel.setForeground(Color.BLACK);
 
         // Center the title relative to the full width of the window
@@ -126,7 +134,7 @@ public class MainMenu extends JPanel implements Runnable {
         titleLabel.setBounds(titleX, titleY, titleLabel.getPreferredSize().width, titleLabel.getPreferredSize().height);
         add(titleLabel);
 
-        // Create the title label "Busy Bee"
+        // Create two shadow labels for the title (to give a 3D effect)
         JLabel titleLabel2 = new JLabel("Busy Bee");
         titleLabel2.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 10% of height
         titleLabel.setForeground(new Color(255, 231, 78));
@@ -148,14 +156,13 @@ public class MainMenu extends JPanel implements Runnable {
         titleLabel3.setBounds(titleX3 - 2, titleY3 - 2, titleLabel3.getPreferredSize().width, titleLabel3.getPreferredSize().height);
         add(titleLabel3);
 
-
         // Initialize "New Game" button
         ImageIcon newGameIcon = new ImageIcon(sheet.getSubimage(34, 129, 23, 7));  // Sprite for button icon
         Image scaledNewGameImage = newGameIcon.getImage().getScaledInstance(buttonWidth, buttonHeight, Image.SCALE_DEFAULT);
         ImageIcon scaledNewGameIcon = new ImageIcon(scaledNewGameImage);
 
-        newGameButton = new JButton("Nowa Gra", scaledNewGameIcon);  // Now initializing the button
-        newGameButton.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.05))); // Font size is 5% of height
+        newGameButton = new JButton("Nowa Gra", scaledNewGameIcon);  // Initialize button
+        newGameButton.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.05)));  // Font size 5% of height
         newGameButton.setForeground(Color.WHITE);
         newGameButton.setBorderPainted(false);
         newGameButton.setFocusPainted(false);
@@ -163,22 +170,20 @@ public class MainMenu extends JPanel implements Runnable {
         newGameButton.setHorizontalTextPosition(JButton.CENTER);
         newGameButton.setVerticalTextPosition(JButton.CENTER);
 
-        // Center "New Game" button relative to the window
+        // Position the "New Game" button
         int newGameButtonX = (gameAreaWidth - buttonWidth) / 2;
-        int newGameButtonY = (int) (gameAreaHeight * 0.4);  // 30% from the top
+        int newGameButtonY = (int) (gameAreaHeight * 0.3);  // 30% from the top
         newGameButton.setBounds(newGameButtonX, newGameButtonY, buttonWidth, buttonHeight);
-        newGameButton.addActionListener(e -> {
-            switcher.startNewGame();  // Start a fresh game when clicking start
-        });
+        newGameButton.addActionListener(e -> startNewGame());
         add(newGameButton);
 
         // Initialize "Exit Game" button
-        ImageIcon exitGameIcon = new ImageIcon(sheet.getSubimage(34, 129, 23, 7));  // Sprite for button icon
+        ImageIcon exitGameIcon = new ImageIcon(sheet.getSubimage(34, 129, 23, 7));
         Image scaledExitGameImage = exitGameIcon.getImage().getScaledInstance(buttonWidth, buttonHeight, Image.SCALE_DEFAULT);
         ImageIcon scaledExitGameIcon = new ImageIcon(scaledExitGameImage);
 
-        exitGameButton = new JButton("Wyjdź z Gry", scaledExitGameIcon);  // Now initializing the button
-        exitGameButton.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.05)));  // Same font size as "New Game"
+        exitGameButton = new JButton("Wyjdź z Gry", scaledExitGameIcon);
+        exitGameButton.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.05)));
         exitGameButton.setForeground(Color.WHITE);
         exitGameButton.setBorderPainted(false);
         exitGameButton.setFocusPainted(false);
@@ -186,15 +191,91 @@ public class MainMenu extends JPanel implements Runnable {
         exitGameButton.setHorizontalTextPosition(JButton.CENTER);
         exitGameButton.setVerticalTextPosition(JButton.CENTER);
 
-        // Center "Exit Game" button relative to the window
+        // Position the "Exit Game" button
         int exitGameButtonX = (gameAreaWidth - buttonWidth) / 2;
-        int exitGameButtonY = (int) (gameAreaHeight * 0.55);  // 45% from the top
+        int exitGameButtonY = (int) (gameAreaHeight * 0.45);  // 45% from the top
         exitGameButton.setBounds(exitGameButtonX, exitGameButtonY, buttonWidth, buttonHeight);
         exitGameButton.addActionListener(e -> System.exit(0));
         add(exitGameButton);
+
+        // Add a rectangle with texture and rules under "Exit Game" button
+        int rulesBoxY = exitGameButtonY + buttonHeight + (int) (gameAreaHeight * 0.04);  // Position below Exit button
+
+        ImageIcon rulesIcon = new ImageIcon(sheet.getSubimage(0, 129, 33, 20));  // Extract texture for the rectangle
+        JLabel rulesLabel = new JLabel(rulesIcon);  // Use the texture as a background
+
+// Define the size of the rules box relative to the window width/height
+        int rulesBoxWidth = buttonWidth;  // Same width as the button
+        int rulesBoxHeight = (int) (gameAreaHeight * 0.25);  // 20% of the window height
+
+// Scale the texture to fit the rules box dimensions
+        Image rulesImage = rulesIcon.getImage().getScaledInstance(rulesBoxWidth, rulesBoxHeight, Image.SCALE_DEFAULT);
+        ImageIcon scaledRulesIcon = new ImageIcon(rulesImage);
+        rulesLabel.setIcon(scaledRulesIcon);
+
+// Set bounds for the rules box and position it below the "Exit Game" button
+        int rulesBoxX = (gameAreaWidth - rulesBoxWidth) / 2;
+        rulesLabel.setBounds(rulesBoxX, rulesBoxY, rulesBoxWidth, rulesBoxHeight);
+
+// Create a JPanel to hold the rules text (transparent panel)
+        JPanel rulesPanel = new JPanel();
+        rulesPanel.setLayout(new BoxLayout(rulesPanel, BoxLayout.Y_AXIS));  // Vertical layout for text lines
+        rulesPanel.setOpaque(false);  // Make the panel background transparent
+
+// Define the rules as separate JLabels
+        String[] rulesText = {
+                "Steruj strzałkami/WASD.",
+                "Zbieraj pyłek do ula i łap bonusy!",
+                "Im więcej pyłku nosisz, tym wolniej lecisz...",
+                "...ale zwiększasz też combo!",
+                "Uciekaj przed szerszeniami.",
+                "Ul jest od nich bezpieczny!"
+        };
+
+// Add each line of the rules as a JLabel and set the custom font
+        for (String line : rulesText) {
+            JLabel ruleLabel = new JLabel(line);
+            ruleLabel.setFont(font.deriveFont(Font.PLAIN, (float) (gameAreaHeight * 0.03)));  // Set custom font
+            ruleLabel.setForeground(Color.WHITE);  // Set text color
+            ruleLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);  // Center text horizontally
+            rulesPanel.add(ruleLabel);  // Add each label to the panel
+        }
+
+// Position the rules panel inside the textured rules box
+        rulesPanel.setBounds(0, 0, rulesBoxWidth, rulesBoxHeight);
+        rulesPanel.setBorder(BorderFactory.createEmptyBorder((int) (rulesBoxHeight * 0.1), 0, 0, 0));  // 15% padding at the top
+
+// Add the rules panel inside the rulesLabel (texture)
+        rulesLabel.add(rulesPanel);
+        add(rulesLabel);  // Add the rules label to the main panel
+        this.cards.revalidate();
+        this.cards.repaint();
     }
 
+    private void startNewGame() {
+        stopMenu();
+        switcher.startNewGame();
+    }
 
+    public void stopMenu() {
+        running = false;
+        bee.stopAnimation();
+        Sprite[][] sprites = {grass, flowers, hornets};
+        for (Sprite[] spriteArray : sprites) {
+            for (Sprite sprite : spriteArray) {
+                sprite.stopAnimation();
+            }
+        }
+
+        try {
+            if (menuThread != null && menuThread.isAlive()) {
+                menuThread.join();  // Wait for the menu thread to fully stop
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        menuThread = null;  // Reset the thread to null so it can be restarted
+    }
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -224,12 +305,13 @@ public class MainMenu extends JPanel implements Runnable {
         for (Sprite sprite : grass) {
             sprite.render(g2d);
         }
-        for (Sprite sprite : flowers) {
-            sprite.render(g2d);
-        }
 
         // Draw beehive on the left
         g2d.drawImage(sheet.getSubimage(0, 41, 52, 58), beehiveRect.x, beehiveRect.y, beehiveRect.width, beehiveRect.height, this);
+
+        for (Sprite sprite : flowers) {
+            sprite.render(g2d);
+        }
 
         // Draw bee and hornets
         bee.render(g2d);
@@ -262,8 +344,13 @@ public class MainMenu extends JPanel implements Runnable {
 
     // To start the animation thread
     public void start() {
-        Thread thread = new Thread(this);
-        thread.start();
+        if (menuThread == null || !menuThread.isAlive()) {
+            // Load resources and sprites
+            running = true;
+            menuThread = new Thread(this);
+            menuThread.start();
+            SwingUtilities.invokeLater(() -> setUpTitleAndButtons());
+        }
     }
 
     private void animateBeeAndHornets() {
