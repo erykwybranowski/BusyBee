@@ -9,10 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.URL;
 import java.util.Random;
-import javax.imageio.ImageIO;
 
 public class Sprite {
     public int framesRemaining = 0;
@@ -105,84 +102,84 @@ public class Sprite {
                 width = 17;
                 height = 15;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(0, 0, 17,15),//1
-                        sheet.getSubimage(18, 0, 17,15),//2
-                        sheet.getSubimage(0, 0, 17,15),//1
-                        sheet.getSubimage(18, 0, 17,15),//2
-                        sheet.getSubimage(36, 0, 17,15),//3
-                        sheet.getSubimage(54, 0, 17,15),//4
-                        sheet.getSubimage(36, 0, 17,15),//3
-                        sheet.getSubimage(54, 0, 17,15),//4
-                        sheet.getSubimage(0, 0, 17,15),//1
-                        sheet.getSubimage(18, 0, 17,15),//2
-                        sheet.getSubimage(0, 0, 17,15),//1
-                        sheet.getSubimage(18, 0, 17,15),//2
-                        sheet.getSubimage(72, 0, 17,15),//5
-                        sheet.getSubimage(90, 0, 17,15),//6
-                        sheet.getSubimage(72, 0, 17,15),//5
-                        sheet.getSubimage(90, 0, 17,15),//6
+                        sheet.getSubimage(0, 0, 17, 15),//1
+                        sheet.getSubimage(18, 0, 17, 15),//2
+                        sheet.getSubimage(0, 0, 17, 15),//1
+                        sheet.getSubimage(18, 0, 17, 15),//2
+                        sheet.getSubimage(36, 0, 17, 15),//3
+                        sheet.getSubimage(54, 0, 17, 15),//4
+                        sheet.getSubimage(36, 0, 17, 15),//3
+                        sheet.getSubimage(54, 0, 17, 15),//4
+                        sheet.getSubimage(0, 0, 17, 15),//1
+                        sheet.getSubimage(18, 0, 17, 15),//2
+                        sheet.getSubimage(0, 0, 17, 15),//1
+                        sheet.getSubimage(18, 0, 17, 15),//2
+                        sheet.getSubimage(72, 0, 17, 15),//5
+                        sheet.getSubimage(90, 0, 17, 15),//6
+                        sheet.getSubimage(72, 0, 17, 15),//5
+                        sheet.getSubimage(90, 0, 17, 15),//6
                 };
                 break;
             case 12: //blue flower
                 width = 19;
                 height = 29;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(111,1,19,29),
-                        sheet.getSubimage(131,1,19,29)
+                        sheet.getSubimage(111, 1, 19, 29),
+                        sheet.getSubimage(131, 1, 19, 29)
                 };
                 break;
             case 13: //yellow flower
                 width = 19;
                 height = 29;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(111,31,19,29),
-                        sheet.getSubimage(131,31,19,29)
+                        sheet.getSubimage(111, 31, 19, 29),
+                        sheet.getSubimage(131, 31, 19, 29)
                 };
                 break;
             case 14: //red flower
                 width = 19;
                 height = 29;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(111,61,19,29),
-                        sheet.getSubimage(131,61,19,29)
+                        sheet.getSubimage(111, 61, 19, 29),
+                        sheet.getSubimage(131, 61, 19, 29)
                 };
                 break;
             case 15: //purple flower
                 width = 19;
                 height = 29;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(111,91,19,29),
-                        sheet.getSubimage(131,91,19,29)
+                        sheet.getSubimage(111, 91, 19, 29),
+                        sheet.getSubimage(131, 91, 19, 29)
                 };
                 break;
             case 16: //white flower
                 width = 19;
                 height = 29;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(111,121,19,29),
-                        sheet.getSubimage(131,121,19,29)
+                        sheet.getSubimage(111, 121, 19, 29),
+                        sheet.getSubimage(131, 121, 19, 29)
                 };
                 break;
             case 17: //hornet
                 width = 31;
                 height = 24;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(0,16,width,height),
-                        sheet.getSubimage(32,16,width,height)
+                        sheet.getSubimage(0, 16, width, height),
+                        sheet.getSubimage(32, 16, width, height)
                 };
                 break;
             case 18: //heart
                 width = 15;
                 height = 14;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(81,16,width,height)
+                        sheet.getSubimage(81, 16, width, height)
                 };
                 break;
             case 19: //combo
                 width = 13;
                 height = 13;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(51,137,width,height)
+                        sheet.getSubimage(51, 137, width, height)
                 };
                 break;
         }
@@ -190,7 +187,7 @@ public class Sprite {
         // Initialize current frame index
         currentFrameIndex = 0;
 
-        // Initialize timer to update frames every 100 milliseconds
+        // Initialize timer to update frames
         if (type == 17 || type == 11) {
             timer = new Timer(speed, new ActionListener() {
                 @Override
@@ -242,7 +239,7 @@ public class Sprite {
 
     public void render(Graphics2D g2d) {
         BufferedImage img = frames[currentFrameIndex];
-        if(mirrored){
+        if (mirrored) {
             img = flipImage(img);
         }
         g2d.drawImage(img, (int) x, (int) y, null);

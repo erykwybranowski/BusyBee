@@ -23,8 +23,8 @@ public class Game extends JPanel implements Runnable {
     private final int TARGET_FPS = 60;  // Target frames per second
     private final long OPTIMAL_TIME = 1000000000 / TARGET_FPS;  // Time per frame in nanoseconds
     private Set<String> pressedKeys = new HashSet<>();
-    private String highscoreFilePath;  // Store file path here
-    private int highscore = 0;  // Store the loaded highscore
+    private String highscoreFilePath;
+    private int highscore = 0;
     private Rectangle gameOverRect;
     private JButton returnToMenuButton;
     private Font font;
@@ -48,7 +48,7 @@ public class Game extends JPanel implements Runnable {
     private int grassCount = 300;
     private Timer grassTimer;
     private int flowerCount = 20;
-    private double hornetSpeed = 0.6;
+    private double hornetSpeed = 0.8;
     private int framesToChangeHornetDirection = 120;
 
     private int healthBoostersCount = 2;
@@ -123,14 +123,14 @@ public class Game extends JPanel implements Runnable {
 
         Sprite[] tempHornets = new Sprite[hornetsCount];
         for (int i = 0; i < hornetsCount; i++) {
-            tempHornets[i] = new Sprite(this, sheet,17, -100, -100, 300);
+            tempHornets[i] = new Sprite(this, sheet, 17, -100, -100, 300);
         }
         hornets = tempHornets;
         hornetsMoved = new boolean[hornetsCount];
 
         Sprite[] tempHealthBoosters = new Sprite[healthBoostersCount];
         for (int i = 0; i < healthBoostersCount; i++) {
-            tempHealthBoosters[i] = new Sprite(this, sheet,18, -100, -100, -1);
+            tempHealthBoosters[i] = new Sprite(this, sheet, 18, -100, -100, -1);
         }
         healthBoosters = tempHealthBoosters;
         healthBoostersMoved = new boolean[healthBoostersCount];
@@ -154,7 +154,7 @@ public class Game extends JPanel implements Runnable {
 
         Sprite[] tempComboBoosters = new Sprite[comboBoostersCount];
         for (int i = 0; i < comboBoostersCount; i++) {
-            tempComboBoosters[i] = new Sprite(this, sheet,19, -100, -100, -1);
+            tempComboBoosters[i] = new Sprite(this, sheet, 19, -100, -100, -1);
         }
         comboBoosters = tempComboBoosters;
         comboBoostersMoved = new int[comboBoostersCount];
@@ -165,7 +165,7 @@ public class Game extends JPanel implements Runnable {
         comboBoostersTimer = new Timer(new Random().nextInt(10000) + 10000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                for (int i = 0; i< comboBoostersCount; i++) {
+                for (int i = 0; i < comboBoostersCount; i++) {
                     if (comboBoostersMoved[i] == 0) {
                         comboBoostersMoved[i] = 1;
                         soundManager.playSound("/bonus_spawn.wav", false, 0.8f);
@@ -179,7 +179,7 @@ public class Game extends JPanel implements Runnable {
         });
         comboBoostersTimer.start();
 
-        flowers = spreadSprites(12,5,hiveRectangle,flowerCount);
+        flowers = spreadSprites(12, 5, hiveRectangle, flowerCount);
 
         setUpGameOverScreen();
     }
@@ -190,7 +190,7 @@ public class Game extends JPanel implements Runnable {
         for (int i = 0; i < spriteCount; i++) {
             boolean valid = false;
             do {
-                Sprite newSprite = new Sprite(this, sheet,random.nextInt(typeRangeCount) + typeRangeFirst, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
+                Sprite newSprite = new Sprite(this, sheet, random.nextInt(typeRangeCount) + typeRangeFirst, 20 + random.nextInt(9) * 40, 30 + random.nextInt(5) * 67, 0);
                 Rectangle newSpriteBounds = newSprite.getBounds();
 
                 // Check if the new flower intersects with the rectangle
@@ -215,7 +215,7 @@ public class Game extends JPanel implements Runnable {
 
     private void setUpButtons(CardLayout cardLayout, JPanel cards) {
         ImageIcon backButtonIcon = new ImageIcon(sheet.getSubimage(34, 137, 16, 13));  // Coordinates of the "Back" icon
-        // Scale the icon using AffineTransform (similar to g2d scaling)
+        // Scale the icon
         Image scaledBackButtonImage = backButtonIcon.getImage().getScaledInstance(96, 78, Image.SCALE_DEFAULT);
         ImageIcon scaledBackButtonIcon = new ImageIcon(scaledBackButtonImage);
 
@@ -225,9 +225,9 @@ public class Game extends JPanel implements Runnable {
         backButton.setFocusPainted(false);
         backButton.setContentAreaFilled(false);  // Make button background transparent
 
-        // Set position manually (absolute positioning)
+        // Set position manuall
         setLayout(null);  // Disable layout manager
-        backButton.setBounds(0, 20, 100, 100);  // Position it similarly to the hearts (-25 isn't needed for components)
+        backButton.setBounds(0, 20, 100, 100);  // Position it similarly to the hearts
 
         // Add action listener for the button
         backButton.addActionListener(e -> returnToMenu());
@@ -237,7 +237,7 @@ public class Game extends JPanel implements Runnable {
 
     private void setUpGameOverScreen() {
         // Initialize the game over rectangle
-        gameOverRect = new Rectangle(100, 140, 200, 120); // Adjust position and size as needed
+        gameOverRect = new Rectangle(100, 140, 200, 120);
 
         // Create "Return to Menu" button with icon
         int buttonHeight = 70;
@@ -246,7 +246,7 @@ public class Game extends JPanel implements Runnable {
         Image scaledReturnToMenuImage = returnToMenuIcon.getImage().getScaledInstance(buttonWidth, buttonHeight, Image.SCALE_DEFAULT);
         ImageIcon scaledReturnToMenuIcon = new ImageIcon(scaledReturnToMenuImage);
 
-        returnToMenuButton = new JButton("Wróć do Menu", scaledReturnToMenuIcon); // Add text and icon
+        returnToMenuButton = new JButton("Wróć do Menu", scaledReturnToMenuIcon);
 
         // Set font and text color for the button text
         returnToMenuButton.setFont(font.deriveFont(Font.BOLD, 20f)); // Use the custom font
@@ -380,20 +380,36 @@ public class Game extends JPanel implements Runnable {
     private void updateGame() {
         Rectangle gameArea = new Rectangle(20, 20, 360, 350);
         Rectangle beeBounds = bee.getBounds();
+        boolean movesHorizontally = false;
+        boolean movesVertically = false;
+        if (pressedKeys.contains("LEFT") || pressedKeys.contains("RIGHT")) {
+            movesHorizontally = true;
+        }
+        if (pressedKeys.contains("UP") || pressedKeys.contains("DOWN")) {
+            movesVertically = true;
+        }
+        double localSpeed = currentSpeed;
+        if (movesVertically && movesHorizontally) {
+            localSpeed = currentSpeed / Math.sqrt(2);
+        }
 
         if (pressedKeys.contains("LEFT") && beeBounds.x > gameArea.x) {
-            bee.moveLeft(currentSpeed); }
+            bee.moveLeft(localSpeed);
+        }
 
         if (pressedKeys.contains("RIGHT") && beeBounds.x + beeBounds.width < gameArea.x + gameArea.width) {
-            bee.moveRight(currentSpeed); }
+            bee.moveRight(localSpeed);
+        }
 
         if (pressedKeys.contains("UP") && beeBounds.y > gameArea.y) {
-            bee.moveUp(currentSpeed); }
+            bee.moveUp(localSpeed);
+        }
 
         if (pressedKeys.contains("DOWN") && beeBounds.y + beeBounds.height < gameArea.y + gameArea.height) {
-            bee.moveDown(currentSpeed); }
+            bee.moveDown(localSpeed);
+        }
         Set<String> fullSet = new HashSet<>(Arrays.asList("LEFT", "RIGHT", "UP", "DOWN"));
-        if(!Collections.disjoint(pressedKeys, fullSet)) {
+        if (!Collections.disjoint(pressedKeys, fullSet)) {
             if (!soundManager.isPlaying("/buzz.wav")) {
                 soundManager.playSound("/buzz.wav", true, 1);  // Loop the movement sound
             }
@@ -441,8 +457,8 @@ public class Game extends JPanel implements Runnable {
                 pollenCount = 0;
                 heartCount--;
                 soundManager.playSound("/hit.wav", false, 1);
-                bee.setX((int) (getPreferredSize().getWidth()/2) - bee.getWidth()/2);
-                bee.setY((int) (getPreferredSize().getHeight()/2) - bee.getHeight()/2);
+                bee.setX((int) (getPreferredSize().getWidth() / 2) - bee.getWidth() / 2);
+                bee.setY((int) (getPreferredSize().getHeight() / 2) - bee.getHeight() / 2);
                 if (heartCount == 0) {
                     showGameOverScreen();
                 }
@@ -455,7 +471,7 @@ public class Game extends JPanel implements Runnable {
 
         for (int i = 0; i < hornetsCount; i++) {
             if (!hornetsMoved[i]) {
-                if (points >= 100 * (i + 1)) {
+                if (points >= 100 && i == 0 || points >= i * 500 && i > 0) {
                     Sprite[][] list = {hornets};
                     hornets[i].moveRandom(list);
                     hornetsMoved[i] = true;
@@ -507,7 +523,7 @@ public class Game extends JPanel implements Runnable {
                     double angle = Math.random() * 2 * Math.PI; // Random angle in radians
                     hornets[i].directionX = Math.cos(angle);
                     hornets[i].directionY = Math.sin(angle);
-                    hornets[i].framesRemaining = framesToChangeHornetDirection; // Move in this direction for 60 frames (1 second)
+                    hornets[i].framesRemaining = framesToChangeHornetDirection; // Move in this direction for 60 frames
                 } else {
                     // Move in the current random direction
                     double moveX = hornetSpeed * hornets[i].directionX;
@@ -599,7 +615,7 @@ public class Game extends JPanel implements Runnable {
                 flower.collectPollen(this);
                 int comboAfter = countCombo();
                 if (comboAfter > 1 && comboAfter != comboBefore) {
-                    popUps.add(new PopUp("Combo x" + comboAfter, bee.getX(), bee.getY(),((double) (comboAfter - 1) / 11 + 1)));
+                    popUps.add(new PopUp("Combo x" + comboAfter, bee.getX(), bee.getY(), ((double) (comboAfter - 1) / 11 + 1)));
                 }
             }
         }
@@ -786,7 +802,6 @@ public class Game extends JPanel implements Runnable {
             g2d.setFont(font.deriveFont(size));
             metrics = g2d.getFontMetrics();
             int popUpTextWidth = metrics.stringWidth(popUp.getText());
-            int popUpTextHeight = metrics.getHeight();
             int popUpTextX = (popUp.getX() + (bee.getWidth() - popUpTextWidth) / 2);
             int popUpTextY = (popUp.getY() - 10);
 
@@ -797,9 +812,8 @@ public class Game extends JPanel implements Runnable {
             g2d.drawString(popUp.getText(), popUpTextX, popUpTextY - (60 - popUp.getFrames()));
             popUp.reduceFrames();
 
-            // If frames <= 0, safely remove the PopUp using the iterator
             if (popUp.getFrames() <= 0) {
-                iterator.remove(); // This safely removes the element from the collection
+                iterator.remove();
             }
         }
 
@@ -814,7 +828,7 @@ public class Game extends JPanel implements Runnable {
             int gameOverTextWidth = metrics.stringWidth(gameOverText);
 
             g2d.setColor(Color.WHITE);
-            g2d.drawString(gameOverText, (int) (gameOverRect.x + (gameOverRect.width / 2 - gameOverTextWidth / 2)), gameOverRect.y + 30); // Adjust vertical position as needed
+            g2d.drawString(gameOverText, (int) (gameOverRect.x + (gameOverRect.width / 2 - gameOverTextWidth / 2)), gameOverRect.y + 30);
 
             // Check if it's a new highscore or not
             String highscoreText;
@@ -830,7 +844,7 @@ public class Game extends JPanel implements Runnable {
 
             // Draw highscore text under the game over message
             int highscoreTextWidth = metrics.stringWidth(highscoreText);
-            g2d.drawString(highscoreText, (int) (gameOverRect.x + (gameOverRect.width / 2 - highscoreTextWidth / 2)), gameOverRect.y + 55);  // Adjust y-position as needed
+            g2d.drawString(highscoreText, (int) (gameOverRect.x + (gameOverRect.width / 2 - highscoreTextWidth / 2)), gameOverRect.y + 55);
         }
 
         g2d.dispose();

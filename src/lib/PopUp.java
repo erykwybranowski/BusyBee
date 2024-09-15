@@ -1,19 +1,14 @@
 package lib;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.URL;
-
 public class PopUp {
     private String text;
     private int frames = 60;
-    private double sizeMultiplier = 1;
+    private double sizeMultiplier;
     private int x;
     private int y;
 
     //text constructor
-    public PopUp(String text,int x, int y, double sizeMultiplier) {
+    public PopUp(String text, int x, int y, double sizeMultiplier) {
         this.text = text;
         this.x = x;
         this.y = y;

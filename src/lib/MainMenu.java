@@ -1,6 +1,7 @@
 package lib;
 
 import lib.animations.Sprite;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -16,9 +17,6 @@ import java.util.Random;
 public class MainMenu extends JPanel implements Runnable {
 
     private boolean running = true; // To control the animation loop
-    private int beeX, beeY; // Coordinates for the bee
-    private int[] hornetX, hornetY; // Coordinates for the hornets
-    private boolean movingRight = true; // To track the bee's direction
     private static final int OPTIMAL_TIME = 1000000000 / 60; // 60 FPS
 
     private CardLayout cardLayout;
@@ -46,7 +44,7 @@ public class MainMenu extends JPanel implements Runnable {
 
         // Set up background color
         setBackground(new Color(89, 160, 74));
-        setPreferredSize(new Dimension(600, 400));  // Adjust size as needed
+        setPreferredSize(new Dimension(600, 400));
         setLayout(null);  // Absolute positioning for buttons
         setUpGraphics();
         soundManager.playSound("/menu_music.wav", true, 0.8f);
@@ -76,7 +74,7 @@ public class MainMenu extends JPanel implements Runnable {
         Random random = new Random();
 
         // Grass sprites
-        int grassCount = 500; // Adjust the number as needed
+        int grassCount = 500;
         grass = new Sprite[grassCount];
         for (int i = 0; i < grassCount; i++) {
             grass[i] = new Sprite(this, sheet, random.nextInt(10) + 1, random.nextInt(59) * 10, random.nextInt(39) * 10, 500);
@@ -95,24 +93,24 @@ public class MainMenu extends JPanel implements Runnable {
         grassTimer.start();
 
         // Flower sprites
-        int flowerCount = 40;  // Adjust the number as needed
+        int flowerCount = 40;
         flowers = new Sprite[flowerCount];
         for (int i = 0; i < flowerCount; i++) {
-            flowers[i] = new Sprite(this, sheet, random.nextInt(5) + 12, random.nextInt(10) * 65, 30+ random.nextInt(6) * 67, 0);
+            flowers[i] = new Sprite(this, sheet, random.nextInt(5) + 12, random.nextInt(10) * 65, 30 + random.nextInt(6) * 67, 0);
         }
 
         // Bee sprite
-        bee = new Sprite(this,sheet, 11, -50, 360, 150);  // Starting just outside the left edge
+        bee = new Sprite(this, sheet, 11, -50, 360, 150);  // Starting just outside the left edge
 
         // Hornets sprites
         int hornetCount = 5;
         hornets = new Sprite[hornetCount];
         for (int i = 0; i < hornetCount; i++) {
-            hornets[i] = new Sprite(this, sheet,17, -100 - i * 50, 360, 300);  // Following the bee
+            hornets[i] = new Sprite(this, sheet, 17, -100 - i * 50, 360, 300);  // Following the bee
         }
 
         // Beehive rectangle (static)
-        beehiveRect = new Rectangle(50, 200, 52, 58);  // Adjust position and size as needed
+        beehiveRect = new Rectangle(50, 200, 52, 58);
     }
 
     private void setUpTitleAndButtons() {
@@ -124,7 +122,7 @@ public class MainMenu extends JPanel implements Runnable {
         int buttonHeight = (int) (gameAreaHeight * 0.12);  // 12% of height
         int buttonWidth = (int) (gameAreaWidth * 0.5);     // 50% of width
 
-        // Create the title label "Busy Bee"
+        // Create the title label
         JLabel titleLabel = new JLabel("Busy Bee");
         titleLabel.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 20% of height
         titleLabel.setForeground(Color.BLACK);
@@ -135,9 +133,9 @@ public class MainMenu extends JPanel implements Runnable {
         titleLabel.setBounds(titleX, titleY, titleLabel.getPreferredSize().width, titleLabel.getPreferredSize().height);
         add(titleLabel);
 
-        // Create two shadow labels for the title (to give a 3D effect)
+        // Create two shadow labels for the title
         JLabel titleLabel2 = new JLabel("Busy Bee");
-        titleLabel2.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 10% of height
+        titleLabel2.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 20% of height
         titleLabel.setForeground(new Color(255, 231, 78));
 
         // Center the title relative to the full width of the window
@@ -146,9 +144,9 @@ public class MainMenu extends JPanel implements Runnable {
         titleLabel2.setBounds(titleX2 + 2, titleY2 + 2, titleLabel2.getPreferredSize().width, titleLabel2.getPreferredSize().height);
         add(titleLabel2);
 
-        // Create the title label "Busy Bee"
+        // Create the title label
         JLabel titleLabel3 = new JLabel("Busy Bee");
-        titleLabel3.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 10% of height
+        titleLabel3.setFont(font.deriveFont(Font.BOLD, (float) (gameAreaHeight * 0.2)));  // Title font size is 20% of height
         titleLabel3.setForeground(Color.WHITE);
 
         // Center the title relative to the full width of the window
@@ -205,25 +203,25 @@ public class MainMenu extends JPanel implements Runnable {
         ImageIcon rulesIcon = new ImageIcon(sheet.getSubimage(0, 129, 33, 20));  // Extract texture for the rectangle
         JLabel rulesLabel = new JLabel(rulesIcon);  // Use the texture as a background
 
-// Define the size of the rules box relative to the window width/height
+        // Define the size of the rules box relative to the window width/height
         int rulesBoxWidth = buttonWidth;  // Same width as the button
-        int rulesBoxHeight = (int) (gameAreaHeight * 0.25);  // 20% of the window height
+        int rulesBoxHeight = (int) (gameAreaHeight * 0.25);  // 25% of the window height
 
-// Scale the texture to fit the rules box dimensions
+        // Scale the texture to fit the rules box dimensions
         Image rulesImage = rulesIcon.getImage().getScaledInstance(rulesBoxWidth, rulesBoxHeight, Image.SCALE_DEFAULT);
         ImageIcon scaledRulesIcon = new ImageIcon(rulesImage);
         rulesLabel.setIcon(scaledRulesIcon);
 
-// Set bounds for the rules box and position it below the "Exit Game" button
+        // Set bounds for the rules box and position it below the "Exit Game" button
         int rulesBoxX = (gameAreaWidth - rulesBoxWidth) / 2;
         rulesLabel.setBounds(rulesBoxX, rulesBoxY, rulesBoxWidth, rulesBoxHeight);
 
-// Create a JPanel to hold the rules text (transparent panel)
+        // Create a JPanel to hold the rules text (transparent panel)
         JPanel rulesPanel = new JPanel();
         rulesPanel.setLayout(new BoxLayout(rulesPanel, BoxLayout.Y_AXIS));  // Vertical layout for text lines
         rulesPanel.setOpaque(false);  // Make the panel background transparent
 
-// Define the rules as separate JLabels
+        // Define the rules as separate JLabels
         String[] rulesText = {
                 "Steruj strzałkami/WASD.",
                 "Zbieraj pyłek do ula i łap bonusy!",
@@ -233,7 +231,7 @@ public class MainMenu extends JPanel implements Runnable {
                 "Ul jest od nich bezpieczny!"
         };
 
-// Add each line of the rules as a JLabel and set the custom font
+        // Add each line of the rules as a JLabel and set the custom font
         for (String line : rulesText) {
             JLabel ruleLabel = new JLabel(line);
             ruleLabel.setFont(font.deriveFont(Font.PLAIN, (float) (gameAreaHeight * 0.03)));  // Set custom font
@@ -242,11 +240,11 @@ public class MainMenu extends JPanel implements Runnable {
             rulesPanel.add(ruleLabel);  // Add each label to the panel
         }
 
-// Position the rules panel inside the textured rules box
+        // Position the rules panel inside the textured rules box
         rulesPanel.setBounds(0, 0, rulesBoxWidth, rulesBoxHeight);
         rulesPanel.setBorder(BorderFactory.createEmptyBorder((int) (rulesBoxHeight * 0.1), 0, 0, 0));  // 15% padding at the top
 
-// Add the rules panel inside the rulesLabel (texture)
+        // Add the rules panel inside the rulesLabel (texture)
         rulesLabel.add(rulesPanel);
         add(rulesLabel);  // Add the rules label to the main panel
         this.cards.revalidate();
@@ -368,15 +366,15 @@ public class MainMenu extends JPanel implements Runnable {
             if (bee.getX() > getPreferredSize().getWidth() + 300) {  // If it flies off the screen
                 beeGoingRight = false;
                 for (int i = 0; i < hornets.length; i++) {
-                    hornets[i].setX(bee.getX() + 50 * (i+1));
+                    hornets[i].setX(bee.getX() + 50 * (i + 1));
                 }
             }
         } else {
             bee.moveLeft(beeSpeed);  // Use moveLeft method
-            if (bee.getX() < - 300) {  // If it flies off the left screen
+            if (bee.getX() < -300) {  // If it flies off the left screen
                 beeGoingRight = true;
                 for (int i = 0; i < hornets.length; i++) {
-                    hornets[i].setX(bee.getX() - 50 * (i+1));
+                    hornets[i].setX(bee.getX() - 50 * (i + 1));
                 }
             }
         }
@@ -392,5 +390,4 @@ public class MainMenu extends JPanel implements Runnable {
 
         repaint();  // Redraw the menu with updated positions
     }
-
 }

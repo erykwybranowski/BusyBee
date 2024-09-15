@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: lib.MainMenu
+Main-Class: lib.MainMenuGameSwitcher
 
