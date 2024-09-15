@@ -25,6 +25,10 @@ public class Game extends JPanel implements Runnable {
     private Set<String> pressedKeys = new HashSet<>();
     private String highscoreFilePath;  // Store file path here
     private int highscore = 0;  // Store the loaded highscore
+    private Rectangle gameOverRect;
+    private JButton returnToMenuButton;
+    private Font font;
+    private Set<PopUp> popUps = new HashSet<>();
 
     public BufferedImage sheet;
     private Sprite[] grass;
@@ -47,10 +51,6 @@ public class Game extends JPanel implements Runnable {
     private double hornetSpeed = 0.6;
     private int framesToChangeHornetDirection = 120;
 
-    private Rectangle gameOverRect;
-    private JButton returnToMenuButton;
-    private Font font;
-
     private int healthBoostersCount = 2;
     private boolean[] healthBoostersMoved;
     private Sprite[] healthBoosters;
@@ -60,6 +60,7 @@ public class Game extends JPanel implements Runnable {
     private int[] comboBoostersMoved;
     private Sprite[] comboBoosters;
     private Timer comboBoostersTimer;
+    private SoundManager soundManager = new SoundManager();
 
     public Game(CardLayout cardLayout, JPanel cards, MainMenuGameSwitcher switcher) {
         super(new BorderLayout());
@@ -72,6 +73,7 @@ public class Game extends JPanel implements Runnable {
         requestFocusInWindow();
         this.cardLayout = cardLayout;
         this.cards = cards;
+        soundManager.playSound("/game_music.wav", true, 0.8f);
     }
 
     private void setUpGraphics() {
@@ -136,9 +138,10 @@ public class Game extends JPanel implements Runnable {
         healthBoostersTimer = new Timer(new Random().nextInt(10000) + 10000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                for (int i = 0; i< healthBoostersCount; i++) {
+                for (int i = 0; i < healthBoostersCount; i++) {
                     if (!healthBoostersMoved[i]) {
                         healthBoostersMoved[i] = true;
+                        soundManager.playSound("/bonus_spawn.wav", false, 0.8f);
                         Sprite[][] list = {healthBoosters, comboBoosters};
                         healthBoosters[i].moveRandom(list);
                         healthBoostersTimer.setDelay(new Random().nextInt(10000) + 10000);
@@ -165,6 +168,7 @@ public class Game extends JPanel implements Runnable {
                 for (int i = 0; i< comboBoostersCount; i++) {
                     if (comboBoostersMoved[i] == 0) {
                         comboBoostersMoved[i] = 1;
+                        soundManager.playSound("/bonus_spawn.wav", false, 0.8f);
                         Sprite[][] list = {healthBoosters, comboBoosters};
                         comboBoosters[i].moveRandom(list);
                         comboBoostersTimer.setDelay(new Random().nextInt(10000) + 10000);
@@ -278,6 +282,7 @@ public class Game extends JPanel implements Runnable {
     }
 
     private void returnToMenu() {
+        soundManager.playSound("/button.wav", false, 1);
         stopGame();  // Stop the game when going back to the main menu
         this.switcher.startNewMenu();
     }
@@ -344,7 +349,10 @@ public class Game extends JPanel implements Runnable {
                 sprite.stopAnimation();
             }
         }
-
+        healthBoostersTimer.stop();
+        comboBoostersTimer.stop();
+        grassTimer.stop();
+        soundManager.stopAllSounds();
         try {
             if (gameThread != null && gameThread.isAlive()) {
                 gameThread.join();  // Wait for the game thread to fully stop
@@ -362,6 +370,8 @@ public class Game extends JPanel implements Runnable {
             highscore = points;
             saveHighscore(highscore);  // Save the new highscore
         }
+        soundManager.playSound("/game_over.wav", false, 1);
+        soundManager.stopSound("/buzz.wav");
         running = false;
         returnToMenuButton.setVisible(true);
         repaint(); // Trigger a repaint to show the game over screen
@@ -382,6 +392,14 @@ public class Game extends JPanel implements Runnable {
 
         if (pressedKeys.contains("DOWN") && beeBounds.y + beeBounds.height < gameArea.y + gameArea.height) {
             bee.moveDown(currentSpeed); }
+        Set<String> fullSet = new HashSet<>(Arrays.asList("LEFT", "RIGHT", "UP", "DOWN"));
+        if(!Collections.disjoint(pressedKeys, fullSet)) {
+            if (!soundManager.isPlaying("/buzz.wav")) {
+                soundManager.playSound("/buzz.wav", true, 1);  // Loop the movement sound
+            }
+        } else {
+            soundManager.stopSound("/buzz.wav");
+        }
 
         defineHornetsMovement(gameArea);
         // Check for collisions with flowers
@@ -398,14 +416,20 @@ public class Game extends JPanel implements Runnable {
                 beehiveImage.getWidth(), beehiveImage.getHeight());
 
         if (bee.getBounds().intersects(beehiveBounds)) {
-            int combo = 1;
+            int combo = countCombo();
+            int pointsAdd = pollenCount * 10 * combo;
+            points += pointsAdd; // Add points based on how much pollen was collected
+            if (pointsAdd > 0) {
+                soundManager.playSound("/hive_points.wav", false, 1);
+                popUps.add(new PopUp("+" + pointsAdd, bee.getX(), bee.getY(), ((double) (combo - 1) / 11 + 1)));
+            } else if (combo > 1) {
+                soundManager.playSound("/hive_reset.wav", false, 1);
+            }
             for (int i = 0; i < comboBoostersCount; i++) {
                 if (comboBoostersMoved[i] == 2) {
-                    combo *= 2;
                     comboBoostersMoved[i] = 0;
                 }
             }
-            points += pollenCount * pollenCount * 10 * combo;  // Add points based on how much pollen was collected
             pollenCount = 0;        // Reset pollen count
             currentSpeed = INITIAL_SPEED;  // Reset speed
         }
@@ -416,6 +440,7 @@ public class Game extends JPanel implements Runnable {
             if (hornets[i].getBounds().intersects(bee.getBounds())) {
                 pollenCount = 0;
                 heartCount--;
+                soundManager.playSound("/hit.wav", false, 1);
                 bee.setX((int) (getPreferredSize().getWidth()/2) - bee.getWidth()/2);
                 bee.setY((int) (getPreferredSize().getHeight()/2) - bee.getHeight()/2);
                 if (heartCount == 0) {
@@ -434,6 +459,7 @@ public class Game extends JPanel implements Runnable {
                     Sprite[][] list = {hornets};
                     hornets[i].moveRandom(list);
                     hornetsMoved[i] = true;
+                    soundManager.playSound("/hornet_spawn.wav", false, 1);
                 }
             } else if (!bee.getBounds().intersects(hiveRectangle.getBounds())) {
                 // Get bee and hornet positions
@@ -566,9 +592,15 @@ public class Game extends JPanel implements Runnable {
         // Handle pollen collection from flowers
         for (Sprite flower : flowers) {
             if (bee.getBounds().intersects(flower.getBounds()) && pollenCount < MAX_POLLEN && flower.getCurrentFrameIndex() == 0) {
+                soundManager.playSound("/pollen_collect.wav", false, 1);
+                int comboBefore = countCombo();
                 pollenCount++;
                 currentSpeed = Math.max(0, currentSpeed - SPEED_REDUCTION); // Reduce speed but ensure it's not negative
                 flower.collectPollen(this);
+                int comboAfter = countCombo();
+                if (comboAfter > 1 && comboAfter != comboBefore) {
+                    popUps.add(new PopUp("Combo x" + comboAfter, bee.getX(), bee.getY(),((double) (comboAfter - 1) / 11 + 1)));
+                }
             }
         }
     }
@@ -576,6 +608,7 @@ public class Game extends JPanel implements Runnable {
     private void defineHealthBoosters() {
         for (int i = 0; i < healthBoostersCount; i++) {
             if (bee.getBounds().intersects(healthBoosters[i].getBounds())) {
+                soundManager.playSound("/bonus_collect.wav", false, 1);
                 healthBoosters[i].setX(-100);
                 healthBoosters[i].setY(-100);
                 healthBoostersMoved[i] = false;
@@ -589,9 +622,12 @@ public class Game extends JPanel implements Runnable {
     private void defineComboBoosters() {
         for (int i = 0; i < comboBoostersCount; i++) {
             if (bee.getBounds().intersects(comboBoosters[i].getBounds())) {
+                soundManager.playSound("/bonus_collect.wav", false, 1);
                 comboBoosters[i].setX(-100);
                 comboBoosters[i].setY(-100);
                 comboBoostersMoved[i] = 2;
+                int combo = countCombo();
+                popUps.add(new PopUp("Combo x" + combo, bee.getX(), bee.getY(), ((double) (combo - 1) / 11 + 1)));
             }
         }
     }
@@ -714,10 +750,10 @@ public class Game extends JPanel implements Runnable {
         }
 
         FontMetrics metrics;
-        // Draw points over the beehive
+        // Draw points
         g2d.setFont(font.deriveFont(20f));
         metrics = g2d.getFontMetrics(); // Get FontMetrics for the current font
-        String pointsText = "" + points + " points";
+        String pointsText = "" + points + " punktów";
         int pointsTextWidth = metrics.stringWidth(pointsText);
         int pointsTextHeight = metrics.getHeight(); // Get the height of the text
 
@@ -726,26 +762,46 @@ public class Game extends JPanel implements Runnable {
         int pointsTextY = 15;  // The Y position where the text will be drawn
 
         // Set background color and draw the rectangle
-        g2d.setColor(new Color(142, 106, 77));  // Orange background
-        g2d.fillRect(pointsTextX - 5, pointsTextY - pointsTextHeight + 3, pointsTextWidth + 10, pointsTextHeight);
+        g2d.setColor(new Color(78, 47, 19));
+        g2d.fillRect(pointsTextX - 7, pointsTextY - pointsTextHeight + 7, pointsTextWidth + 14, pointsTextHeight + 4);
+        // Set background color and draw the rectangle
+        g2d.setColor(new Color(142, 106, 77));
+        g2d.fillRect(pointsTextX - 5, pointsTextY - pointsTextHeight + 9, pointsTextWidth + 10, pointsTextHeight);
 
         // Set the text color and draw the points text over the rectangle
-        g2d.setColor(new Color(255, 255, 255));  // Yellowish text color
-        g2d.drawString(pointsText, pointsTextX, pointsTextY);
+        g2d.setColor(new Color(255, 255, 255));
+        g2d.drawString(pointsText, pointsTextX, pointsTextY + 2);
 
-        int comboFromBoosters = 1;
-        for (int value : comboBoostersMoved) {
-            if (value == 2) {
-                comboFromBoosters *= 2;
-            }
+        int combo = countCombo();
+        if (combo > 1) {
+            g2d.setColor(new Color(255, 231, 78));
         }
-        int comboFromPollen = 1;
-        if (pollenCount > 0) {
-            comboFromPollen = pollenCount;
-        }
-        int combo = comboFromPollen * comboFromBoosters;
         String comboText = "x" + combo;
         g2d.drawString(comboText, (int) (getPreferredSize().getWidth() + 10), 90);
+
+        Iterator<PopUp> iterator = popUps.iterator();
+        while (iterator.hasNext()) {
+            PopUp popUp = iterator.next();
+            float size = (float) (20 * popUp.getSizeMultiplier());
+            g2d.setFont(font.deriveFont(size));
+            metrics = g2d.getFontMetrics();
+            int popUpTextWidth = metrics.stringWidth(popUp.getText());
+            int popUpTextHeight = metrics.getHeight();
+            int popUpTextX = (popUp.getX() + (bee.getWidth() - popUpTextWidth) / 2);
+            int popUpTextY = (popUp.getY() - 10);
+
+            int alpha = (int) ((popUp.getFrames() / 60.0) * 255);
+            alpha = Math.max(0, Math.min(alpha, 255)); // Ensure alpha is in the range 0-255
+
+            g2d.setColor(new Color(255, 231, 78, alpha));
+            g2d.drawString(popUp.getText(), popUpTextX, popUpTextY - (60 - popUp.getFrames()));
+            popUp.reduceFrames();
+
+            // If frames <= 0, safely remove the PopUp using the iterator
+            if (popUp.getFrames() <= 0) {
+                iterator.remove(); // This safely removes the element from the collection
+            }
+        }
 
         if (!running) {
             // Draw the Game Over window
@@ -778,6 +834,20 @@ public class Game extends JPanel implements Runnable {
         }
 
         g2d.dispose();
+    }
+
+    private int countCombo() {
+        int comboFromBoosters = 1;
+        for (int value : comboBoostersMoved) {
+            if (value == 2) {
+                comboFromBoosters *= 2;
+            }
+        }
+        int comboFromPollen = 1;
+        if (pollenCount > 0) {
+            comboFromPollen = pollenCount;
+        }
+        return comboFromPollen * comboFromBoosters;
     }
 
 

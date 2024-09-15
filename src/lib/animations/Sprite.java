@@ -1,6 +1,7 @@
 package lib.animations;
 
 import lib.Game;
+import lib.SoundManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -26,6 +27,7 @@ public class Sprite {
     private int width = 0;
     private int height = 0;
     private final int flowerTime = 20000;
+    private SoundManager soundManager;
 
     public Sprite(JPanel gamePanel, BufferedImage sheet, int type, int x, int y, int speed) {
         this.x = x;
@@ -173,7 +175,6 @@ public class Sprite {
                 width = 15;
                 height = 14;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(81,16,width,height),
                         sheet.getSubimage(81,16,width,height)
                 };
                 break;
@@ -181,7 +182,6 @@ public class Sprite {
                 width = 13;
                 height = 13;
                 frames = new BufferedImage[]{
-                        sheet.getSubimage(51,137,width,height),
                         sheet.getSubimage(51,137,width,height)
                 };
                 break;
@@ -203,11 +203,13 @@ public class Sprite {
             });
             timer.start();
         } else if (speed == 0) {
+            soundManager = new SoundManager();
             timer = new Timer(flowerTime, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     if (currentFrameIndex == 1) {
                         currentFrameIndex = 0;
+                        soundManager.playSound("/pollen_spawn.wav", false, 1);
                         gamePanel.repaint();
                     }
                 }

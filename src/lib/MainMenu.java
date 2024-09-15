@@ -8,7 +8,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -38,6 +37,7 @@ public class MainMenu extends JPanel implements Runnable {
     private MainMenuGameSwitcher switcher;
     private Timer grassTimer;
     private Thread menuThread;
+    private SoundManager soundManager = new SoundManager();
 
     public MainMenu(CardLayout cardLayout, JPanel cards, MainMenuGameSwitcher switcher) {
         this.switcher = switcher;
@@ -49,6 +49,7 @@ public class MainMenu extends JPanel implements Runnable {
         setPreferredSize(new Dimension(600, 400));  // Adjust size as needed
         setLayout(null);  // Absolute positioning for buttons
         setUpGraphics();
+        soundManager.playSound("/menu_music.wav", true, 0.8f);
     }
 
     private void setUpGraphics() {
@@ -195,7 +196,7 @@ public class MainMenu extends JPanel implements Runnable {
         int exitGameButtonX = (gameAreaWidth - buttonWidth) / 2;
         int exitGameButtonY = (int) (gameAreaHeight * 0.45);  // 45% from the top
         exitGameButton.setBounds(exitGameButtonX, exitGameButtonY, buttonWidth, buttonHeight);
-        exitGameButton.addActionListener(e -> System.exit(0));
+        exitGameButton.addActionListener(e -> exitGame());
         add(exitGameButton);
 
         // Add a rectangle with texture and rules under "Exit Game" button
@@ -252,7 +253,13 @@ public class MainMenu extends JPanel implements Runnable {
         this.cards.repaint();
     }
 
+    private void exitGame() {
+        soundManager.playSound("/button.wav", false, 1);
+        System.exit(0);
+    }
+
     private void startNewGame() {
+        soundManager.playSound("/button.wav", false, 1);
         stopMenu();
         switcher.startNewGame();
     }
@@ -266,7 +273,7 @@ public class MainMenu extends JPanel implements Runnable {
                 sprite.stopAnimation();
             }
         }
-
+        soundManager.stopAllSounds();
         try {
             if (menuThread != null && menuThread.isAlive()) {
                 menuThread.join();  // Wait for the menu thread to fully stop
