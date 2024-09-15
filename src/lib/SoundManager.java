@@ -1,8 +1,9 @@
 package lib;
 
 import javax.sound.sampled.*;
-import java.io.File;
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,8 +16,9 @@ public class SoundManager {
     public void playSound(String soundFileName, boolean loop, float volume) {
         try {
             // Load the sound file from the resource folder
-            File soundFile = new File(getClass().getResource(soundFileName).getFile());
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
+            InputStream audioSrc = getClass().getResourceAsStream(soundFileName);
+            InputStream bufferedIn = new BufferedInputStream(audioSrc);
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(bufferedIn);
             Clip clip = AudioSystem.getClip();
             clip.open(audioStream);
 
