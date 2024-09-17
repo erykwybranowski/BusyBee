@@ -481,34 +481,101 @@ public class Game extends JPanel implements Runnable {
                 // Get bee and hornet positions
                 int beeX = bee.getX();
                 int beeY = bee.getY();
+                int beeWidth = bee.getWidth();
+                int beeHeight = bee.getHeight();
                 int hornetX = hornets[i].getX();
                 int hornetY = hornets[i].getY();
+                int hornetWidth = hornets[i].getWidth();
+                int hornetHeight = hornets[i].getHeight();
+                int hiveX = hiveRectangle.x;
+                int hiveY = hiveRectangle.y;
+                int hiveWidth = hiveRectangle.width;
+                int hiveHeight = hiveRectangle.height;
 
-                // Calculate direction vector from hornet to bee
+// Calculate direction vector from hornet to bee
                 int deltaX = beeX - hornetX;
                 int deltaY = beeY - hornetY;
 
-                // Calculate the distance between the hornet and the bee
+// Calculate the distance between the hornet and the bee
                 double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                // Normalize the direction vector and multiply by hornetSpeed
+// Normalize the direction vector and multiply by hornetSpeed
                 if (distance != 0) {
                     double moveX = (hornetSpeed * (deltaX / distance));
                     double moveY = (hornetSpeed * (deltaY / distance));
 
-                    Rectangle hornetMovedX = new Rectangle(hornetX + roundAwayFromZero(moveX), hornetY, hornets[i].getWidth(), hornets[i].getHeight());
-                    Rectangle hornetMovedY = new Rectangle(hornetX, hornetY + roundAwayFromZero(moveY), hornets[i].getWidth(), hornets[i].getHeight());
+                    // Predict the hornet's position after movement in x and y directions
+                    Rectangle hornetMovedX = new Rectangle(hornetX + roundAwayFromZero(moveX), hornetY, hornetWidth, hornetHeight);
+                    Rectangle hornetMovedY = new Rectangle(hornetX, hornetY + roundAwayFromZero(moveY), hornetWidth, hornetHeight);
+                    Rectangle hornetMovedXY = new Rectangle(hornetX + roundAwayFromZero(moveX), hornetY + roundAwayFromZero(moveY), hornetWidth, hornetHeight);
+                    boolean willIntersectX = hornetMovedX.intersects(hiveRectangle);
+                    boolean willIntersectY = hornetMovedY.intersects(hiveRectangle);
+                    boolean willIntersectXY = hornetMovedXY.intersects(hiveRectangle);
 
-                    if (!hornetMovedX.intersects(hiveRectangle)) {
+                    // If the hornet will hit hive on the corner
+//                    if (willIntersectXY && !willIntersectX && !willIntersectY) {
+//                        if (moveX > moveY) {
+//                            System.out.println("Hit the corner, moving horizontally");
+//                            hornets[i].moveHorizontally(moveX, hornetSpeed);
+//                        } else {
+//                            System.out.println("Hit the corner, moving vertically");
+//                            hornets[i].moveVertically(moveY, hornetSpeed);
+//                        }
+                    //if the hornet will hit the hive from up or down
+//                    } else
+                        if (willIntersectY) {
+                        //if the bee is on the left or on the right of the hive
+                        if (beeX + beeWidth <= hiveX || beeX >= hiveX + hiveWidth) {
+                            System.out.println("hit Y, moving horizontally");
+                            if (moveX == 0){
+                                if (hornetX < hiveX) {
+                                    moveX = -1;
+                                }
+                                if (hornetX + hornetWidth > hiveX + hiveWidth) {
+                                    moveX = 1;
+                                }
+                            }
+                            hornets[i].moveHorizontally(moveX, hornetSpeed);
+                        }
+                        //if the bee is below or above the hive, move depending on the shorter route left or right
+                        else if(hornetX - hiveX < hiveX + hiveWidth - (hornetX + hornetWidth)) {
+                            System.out.println("hit Y, moving left");
+                            hornets[i].moveRight(-hornetSpeed); // move Left
+                        } else {
+                            System.out.println("hit Y, moving right");
+                            hornets[i].moveLeft(-hornetSpeed); // move Right
+                        }
+                    //if the hornet will hit the hive from left or right
+                    } else if (willIntersectX) {
+                        //if the bee is over or below the hive
+                        if (beeY + beeHeight <= hiveY || beeY >= hiveY + hiveHeight) {
+                            System.out.println("hit X, moving vertically");
+                            if (moveY == 0){
+                                if (hornetY < hiveY) {
+                                    moveY = -1;
+                                }
+                                if (hornetY + hornetHeight > hiveY + hiveHeight) {
+                                    moveY = 1;
+                                }
+                            }
+                            hornets[i].moveVertically(moveY, hornetSpeed);
+                        }
+                        //if the bee is on the left or on the right of the hive, move depending on the shorter route up or down
+                        else if(hornetY - hiveY < hiveY + hiveHeight - (hornetY + hornetHeight)) {
+                            System.out.println("hit X, moving up");
+                            hornets[i].moveUp(hornetSpeed); //move Up
+                        } else {
+                            System.out.println("hit X, moving down");
+                            hornets[i].moveDown(hornetSpeed); // move Down
+                        }
+                    //normal condition, no hive in reach
+                    } else {
                         if (moveX < 0) {
                             hornets[i].moveRight(moveX);
                         }
                         if (moveX > 0) {
                             hornets[i].moveLeft(-moveX);
                         }
-                    }
-
-                    if (!hornetMovedY.intersects(hiveRectangle)) {
                         if (moveY < 0) {
                             hornets[i].moveUp(-moveY);
                         }

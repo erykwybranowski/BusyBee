@@ -361,4 +361,22 @@ public class Sprite {
     public int getFramesLength() {
         return frames.length;
     }
+
+    public void moveHorizontally(double directionValue, double speedValue) {
+        if (directionValue < 0) {
+            this.moveRight(-speedValue);
+        }
+        if (directionValue > 0) {
+            this.moveLeft(-speedValue);
+        }
+    }
+
+    public void moveVertically(double directionValue, double speedValue) {
+        if (directionValue < 0) {
+            this.moveUp(speedValue);
+        }
+        if (directionValue > 0) {
+            this.moveDown(speedValue);
+        }
+    }
 }
