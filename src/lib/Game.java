@@ -510,23 +510,9 @@ public class Game extends JPanel implements Runnable {
                     Rectangle hornetMovedXY = new Rectangle(hornetX + roundAwayFromZero(moveX), hornetY + roundAwayFromZero(moveY), hornetWidth, hornetHeight);
                     boolean willIntersectX = hornetMovedX.intersects(hiveRectangle);
                     boolean willIntersectY = hornetMovedY.intersects(hiveRectangle);
-                    boolean willIntersectXY = hornetMovedXY.intersects(hiveRectangle);
-
-                    // If the hornet will hit hive on the corner
-//                    if (willIntersectXY && !willIntersectX && !willIntersectY) {
-//                        if (moveX > moveY) {
-//                            System.out.println("Hit the corner, moving horizontally");
-//                            hornets[i].moveHorizontally(moveX, hornetSpeed);
-//                        } else {
-//                            System.out.println("Hit the corner, moving vertically");
-//                            hornets[i].moveVertically(moveY, hornetSpeed);
-//                        }
-                    //if the hornet will hit the hive from up or down
-//                    } else
-                        if (willIntersectY) {
+                    if (willIntersectY) {
                         //if the bee is on the left or on the right of the hive
                         if (beeX + beeWidth <= hiveX || beeX >= hiveX + hiveWidth) {
-                            System.out.println("hit Y, moving horizontally");
                             if (moveX == 0){
                                 if (hornetX < hiveX) {
                                     moveX = -1;
@@ -539,17 +525,14 @@ public class Game extends JPanel implements Runnable {
                         }
                         //if the bee is below or above the hive, move depending on the shorter route left or right
                         else if(hornetX - hiveX < hiveX + hiveWidth - (hornetX + hornetWidth)) {
-                            System.out.println("hit Y, moving left");
                             hornets[i].moveRight(-hornetSpeed); // move Left
                         } else {
-                            System.out.println("hit Y, moving right");
                             hornets[i].moveLeft(-hornetSpeed); // move Right
                         }
                     //if the hornet will hit the hive from left or right
                     } else if (willIntersectX) {
                         //if the bee is over or below the hive
                         if (beeY + beeHeight <= hiveY || beeY >= hiveY + hiveHeight) {
-                            System.out.println("hit X, moving vertically");
                             if (moveY == 0){
                                 if (hornetY < hiveY) {
                                     moveY = -1;
@@ -562,10 +545,8 @@ public class Game extends JPanel implements Runnable {
                         }
                         //if the bee is on the left or on the right of the hive, move depending on the shorter route up or down
                         else if(hornetY - hiveY < hiveY + hiveHeight - (hornetY + hornetHeight)) {
-                            System.out.println("hit X, moving up");
                             hornets[i].moveUp(hornetSpeed); //move Up
                         } else {
-                            System.out.println("hit X, moving down");
                             hornets[i].moveDown(hornetSpeed); // move Down
                         }
                     //normal condition, no hive in reach
@@ -722,7 +703,7 @@ public class Game extends JPanel implements Runnable {
         if (!folder.exists()) {
             folder.mkdirs();  // Create directories if they don't exist
         }
-        highscoreFilePath = folderPath + File.separator + "highscore.txt";
+        highscoreFilePath = folderPath + File.separator + "highscore2.txt";
     }
 
     // Load the highscore from the file
